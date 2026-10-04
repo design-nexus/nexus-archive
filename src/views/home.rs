@@ -126,10 +126,9 @@ impl Home {
         let root = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
             .vscrollbar_policy(gtk::PolicyType::External)
-            .child(&body)
+            .child(&widgets::clamp(&body, 920))
             .vexpand(true)
             .build();
-        widgets::center_clamp(&root, &body, 920);
         let home = Rc::new(Home { root, recents, recents_group, banner });
         let h = home.clone();
         clear.connect_clicked(move |_| {

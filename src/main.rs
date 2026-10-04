@@ -1,5 +1,6 @@
 //! Nexus Archive: a 7-Zip archive manager for Omarchy.
 
+mod clamp;
 mod cmd;
 mod fmt;
 mod paths;

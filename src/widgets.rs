@@ -212,14 +212,9 @@ pub fn key_caps(keys: &[&str]) -> gtk::Box {
 }
 
 
-/// Keep `body` at most `max` pixels wide and centred inside `scroll`, as the widths change.
-pub fn center_clamp(scroll: &gtk::ScrolledWindow, body: &impl IsA<gtk::Widget>, max: i32) {
-    let body = body.clone().upcast::<gtk::Widget>();
-    scroll.hadjustment().connect_page_size_notify(move |a| {
-        let side = ((a.page_size() as i32 - max) / 2).max(0);
-        body.set_margin_start(side);
-        body.set_margin_end(side);
-    });
+/// `child` at most `max` pixels wide, centred.
+pub fn clamp(child: &impl IsA<gtk::Widget>, max: i32) -> crate::clamp::Clamp {
+    crate::clamp::Clamp::new(child, max)
 }
 
 /// A flat icon-only button with a tooltip.

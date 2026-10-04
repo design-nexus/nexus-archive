@@ -76,6 +76,21 @@ pub fn present(app: &gtk::Application, req: Request) {
     }
     let Some(ui) = ui() else { return };
     ui.window.present();
+    // Developer aid: NARC_MEASURE=1 prints each view's minimum width, so layouts can be
+    // checked against narrow tiles.
+    if std::env::var_os("NARC_MEASURE").is_some() {
+        let u = ui.clone();
+        glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
+            // NARC_MEASURE=460 measures the views as they adapt to that width.
+            if let Some(at) = std::env::var("NARC_MEASURE").ok().and_then(|v| v.parse::<i32>().ok()) {
+                shed_in(u.stack.upcast_ref(), at);
+            }
+            for (name, w) in [("home", u.home.root.upcast_ref::<gtk::Widget>()), ("browse", u.browse.root.upcast_ref()), ("create", u.create.root.upcast_ref())] {
+                eprintln!("{name}: min width {}", w.measure(gtk::Orientation::Horizontal, -1).0);
+                report_widest(w, 0);
+            }
+        });
+    }
     if req.files.is_empty() {
         return;
     }
@@ -109,10 +124,27 @@ pub fn current() -> String {
     ui().and_then(|u| u.stack.visible_child_name()).map(|n| n.to_string()).unwrap_or_default()
 }
 
+/// Rows with a wide control put it under their text below this width.
+const STACK_ROWS_BELOW: i32 = 720;
+
 fn shed_in(w: &gtk::Widget, width: i32) {
     for (class, below) in SHED {
         if w.has_css_class(class) {
             w.set_visible(width >= below);
+        }
+    }
+    if w.has_css_class("adaptive-row")
+        && let Some(b) = w.downcast_ref::<gtk::Box>()
+    {
+        let stacked = width > 0 && width < STACK_ROWS_BELOW;
+        b.set_orientation(if stacked { gtk::Orientation::Vertical } else { gtk::Orientation::Horizontal });
+        if let Some(control) = b.last_child() {
+            control.set_halign(if stacked { gtk::Align::Start } else { gtk::Align::Fill });
+        }
+        if stacked {
+            b.add_css_class("stacked");
+        } else {
+            b.remove_css_class("stacked");
         }
     }
     let mut child = w.first_child();
@@ -143,7 +175,7 @@ fn build(app: &gtk::Application) {
     // No client-side titlebar: Hyprland manages the window.
     window.set_titlebar(Some(&gtk::Box::new(gtk::Orientation::Horizontal, 0)));
     window.set_icon_name(Some(crate::APP_ID));
-    window.set_size_request(520, 420);
+    window.set_size_request(360, 360);
 
     let home = Home::new();
     let browse = Browse::new();
@@ -158,15 +190,23 @@ fn build(app: &gtk::Application) {
     stack.set_visible_child_name("home");
 
     let progress = build_progress();
+    // The views adapt to the width (labels, columns, stacked rows) once the window
+    // knows it. This wrapper asks for no width of its own, so a narrow tile is never
+    // held open by a view that hasn't adapted yet.
+    let holder = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::External)
+        .vscrollbar_policy(gtk::PolicyType::Never)
+        .child(&stack)
+        .build();
     let overlay = gtk::Overlay::new();
-    overlay.set_child(Some(&stack));
+    overlay.set_child(Some(&holder));
     overlay.add_overlay(&progress.root);
     window.set_child(Some(&overlay));
 
     // The window has no resize signal worth trusting, so a tick callback watches the width.
     window.add_tick_callback(|w, _| {
         let width = w.width();
-        let tier = |x: i32| SHED.iter().filter(|(_, below)| x < *below).count();
+        let tier = |x: i32| SHED.iter().filter(|(_, below)| x < *below).count() + usize::from(x < STACK_ROWS_BELOW);
         let old = WIDTH.with(Cell::get);
         if old == 0 || tier(old) != tier(width) {
             WIDTH.with(|c| c.set(width));
@@ -717,5 +757,18 @@ pub fn open_archive(path: PathBuf) {
 pub fn start_create(files: Vec<PathBuf>) {
     if let Some(ui) = ui() {
         ui.create.start(files);
+    }
+}
+
+/// Print the descendants whose minimum width is large, to find what holds a view open.
+fn report_widest(w: &gtk::Widget, depth: usize) {
+    let mut child = w.first_child();
+    while let Some(c) = child {
+        let min = c.measure(gtk::Orientation::Horizontal, -1).0;
+        if min > 300 && depth < 14 {
+            eprintln!("{}{} {:?} min {min}", "  ".repeat(depth + 1), c.type_().name(), c.css_classes());
+            report_widest(&c, depth + 1);
+        }
+        child = c.next_sibling();
     }
 }

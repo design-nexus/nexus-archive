@@ -529,7 +529,11 @@ window.archive-window entry.error {
 }
 
 window.archive-window entry.settings-search {
-  min-width: 180px;
+  min-width: 140px;
+}
+
+.settings-option.stacked {
+  padding: 14px 16px;
 }
 
 /* ---------- Drop zone and recent list ---------- */

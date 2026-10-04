@@ -287,7 +287,7 @@ impl Browse {
         search.add_css_class("settings-search");
         search.set_placeholder_text(Some("Search this archive"));
         search.set_search_delay(150);
-        search.set_width_chars(22);
+        search.set_width_chars(12);
         search.set_max_width_chars(28);
         bar.append(&search);
         root.append(&bar);

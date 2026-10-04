@@ -77,7 +77,9 @@ impl Create {
         let text = widgets::vbox(0);
         text.set_hexpand(true);
         text.append(&widgets::label("New archive", "section-title"));
-        text.append(&widgets::label("Choose what goes in, then how it should be packed.", "section-description"));
+        let desc = widgets::label("Choose what goes in, then how it should be packed.", "section-description");
+        desc.set_wrap(true);
+        text.append(&desc);
         header.append(&text);
         body.append(&header);
 
@@ -208,7 +210,9 @@ impl Create {
                 prefs::update(|p| p.last_format = id);
                 t.sync();
             });
-            (widgets::row("Format", "7z packs smallest; zip opens everywhere.", Some(seg.upcast_ref())), seg)
+            let r = widgets::row("Format", "7z packs smallest; zip opens everywhere.", Some(seg.upcast_ref()));
+            r.add_css_class("adaptive-row");
+            (r, seg)
         };
         let t = this.clone();
         let level_row = widgets::segmented_row("Compression", "Higher levels are smaller but slower.", level_opts, &this_level.to_string(), move |id| {
@@ -218,6 +222,7 @@ impl Create {
             t.sync();
         });
 
+        level_row.add_css_class("adaptive-row");
         list.append(&format_row);
         list.append(&tar_note);
         list.append(&level_row);
@@ -266,10 +271,9 @@ impl Create {
         let scroll = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
             .vscrollbar_policy(gtk::PolicyType::External)
-            .child(&body)
+            .child(&widgets::clamp(&body, 920))
             .vexpand(true)
             .build();
-        widgets::center_clamp(&scroll, &body, 920);
         root.append(&scroll);
 
         let footer = widgets::hbox(12);
