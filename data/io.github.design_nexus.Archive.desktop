@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name=Nexus Archive
+GenericName=Archive Manager
+Comment=Browse, extract and create 7z, zip, tar and other archives
+Exec=archive %U
+Icon=io.github.design_nexus.Archive
+Terminal=false
+Categories=Utility;Archiving;Compression;GTK;
+Keywords=archive;zip;7z;7zip;tar;rar;compress;extract;unzip;
+MimeType=application/x-7z-compressed;application/zip;application/x-tar;application/gzip;application/x-xz;application/x-bzip2;application/zstd;application/vnd.rar;application/x-rar;application/x-compressed-tar;application/x-xz-compressed-tar;application/x-bzip-compressed-tar;application/x-cd-image;application/vnd.debian.binary-package;
+StartupNotify=true
+StartupWMClass=io.github.design_nexus.Archive
+SingleMainWindow=true
+DBusActivatable=false
+Actions=Create;
+
+[Desktop Action Create]
+Name=New archive
+Exec=archive --create

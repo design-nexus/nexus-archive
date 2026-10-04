@@ -1,0 +1,863 @@
+/* Nexus Archive — Nexus app style (see ~/Projects/STYLE.md). Every colour comes from the
+ * @theme_* tokens defined by the active palette (see theme.rs). */
+
+window.archive-window {
+  background: @theme_bg;
+  color: @theme_text;
+}
+
+window.archive-window,
+window.archive-window popover,
+window.archive-window dialog {
+  font-size: 1.0em;
+}
+
+.mono,
+.value-readout {
+  font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", monospace;
+  font-feature-settings: "tnum";
+}
+
+/* ---------- Content ---------- */
+
+.settings-content {
+  background: @theme_bg;
+}
+
+.settings-page {
+  padding: 30px 36px 48px;
+}
+
+.settings-page.narrow {
+  padding: 22px 18px 40px;
+}
+
+.section-header {
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 1.62em;
+  font-weight: 800;
+  color: @theme_text;
+}
+
+.section-description {
+  margin-top: 2px;
+  color: @theme_dim_text;
+}
+
+.group-title {
+  margin: 24px 2px 8px;
+  font-size: 0.76em;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: @theme_dim_text;
+}
+
+.group-note {
+  margin: -2px 2px 10px;
+  font-size: 0.88em;
+  color: @theme_dim_text;
+}
+
+.settings-group {
+  /* the rows provide the chrome */
+}
+
+.settings-option {
+  background: mix(@theme_bg, @theme_muted, 0.25);
+  border: 1px solid alpha(@theme_border, 0.55);
+  border-radius: 6px;
+  min-height: 60px;
+  padding: 10px 14px;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out;
+}
+
+.settings-option:hover {
+  border-color: alpha(@theme_border, 0.95);
+}
+
+.settings-option.search-hit {
+  border-color: alpha(@theme_accent, 0.72);
+  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.38), 0 0 14px alpha(@theme_glow, 0.24);
+}
+
+.settings-option.tall {
+  padding: 14px 16px;
+}
+
+.settings-option-title {
+  color: @theme_text;
+  font-weight: 700;
+}
+
+.settings-option-description {
+  color: @theme_dim_text;
+  font-size: 0.88em;
+}
+
+.settings-option-description link {
+  color: @theme_accent;
+}
+
+.settings-option .managed-dot {
+  min-width: 6px;
+  min-height: 6px;
+  border-radius: 999px;
+  background: @theme_accent;
+  margin-right: 2px;
+}
+
+.value-readout {
+  color: @theme_text;
+  min-width: 64px;
+}
+
+.dim {
+  color: @theme_dim_text;
+}
+
+.danger-text {
+  color: @theme_danger;
+}
+
+.accent-text {
+  color: @theme_accent;
+}
+
+/* ---------- Buttons ---------- */
+
+window.archive-window button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: alpha(@theme_muted, 0.32);
+  border: 1px solid alpha(@theme_border, 0.8);
+  box-shadow: none;
+  color: @theme_text;
+  transition: background 150ms ease-out, border-color 150ms ease-out;
+}
+
+window.archive-window button:hover {
+  background: alpha(@theme_muted, 0.55);
+  border-color: alpha(@theme_accent, 0.55);
+}
+
+window.archive-window button:active {
+  background: alpha(@theme_accent, 0.22);
+}
+
+window.archive-window button:disabled {
+  opacity: 0.45;
+}
+
+window.archive-window button.suggested-action {
+  background: @theme_accent;
+  border-color: @theme_accent;
+  color: @theme_on_accent;
+  font-weight: 700;
+}
+
+window.archive-window button.suggested-action:hover {
+  background: mix(@theme_accent, @theme_text, 0.12);
+}
+
+window.archive-window button.destructive-action {
+  background: alpha(@theme_danger, 0.12);
+  border-color: alpha(@theme_danger, 0.55);
+  color: @theme_danger;
+}
+
+window.archive-window button.flat {
+  background: transparent;
+  border-color: transparent;
+}
+
+window.archive-window button.flat:hover {
+  background: alpha(@theme_highlight, 0.55);
+}
+
+window.archive-window button.reset-button {
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0;
+  border-radius: 999px;
+  color: @theme_dim_text;
+}
+
+window.archive-window button.open-config {
+  min-height: 34px;
+  padding: 0 14px;
+  font-weight: 600;
+}
+
+window.archive-window button.open-config image {
+  color: @theme_accent;
+}
+
+window.archive-window button.chip {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.9em;
+}
+
+window.archive-window button.chip.selected {
+  background: alpha(@theme_accent, 0.2);
+  border-color: alpha(@theme_accent, 0.8);
+  color: @theme_text;
+}
+
+/* ---------- Inputs ---------- */
+
+window.archive-window entry,
+window.archive-window spinbutton {
+  min-height: 32px;
+  border-radius: 5px;
+  background: alpha(@theme_bg, 0.65);
+  border: 1px solid alpha(@theme_border, 0.8);
+  box-shadow: none;
+  color: @theme_text;
+}
+
+window.archive-window entry:focus-within,
+window.archive-window spinbutton:focus-within {
+  border-color: @theme_accent;
+  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.38);
+}
+
+window.archive-window dropdown > button {
+  min-width: 160px;
+}
+
+window.archive-window popover > contents {
+  background: @theme_surface;
+  border: 1px solid alpha(@theme_border, 0.7);
+  border-radius: 9px;
+  box-shadow: 0 4px 16px alpha(@theme_shadow, 0.5);
+  color: @theme_text;
+  padding: 4px;
+}
+
+window.archive-window popover listview > row,
+window.archive-window popover list > row {
+  border-radius: 5px;
+  padding: 6px 10px;
+  color: @theme_text;
+}
+
+window.archive-window popover listview > row:hover,
+window.archive-window popover list > row:hover,
+window.archive-window popover listview > row:selected {
+  background: alpha(@theme_accent, 0.18);
+}
+
+window.archive-window switch {
+  min-width: 40px;
+  min-height: 22px;
+  border-radius: 999px;
+  background: alpha(@theme_muted, 0.85);
+  border: 1px solid alpha(@theme_border, 0.9);
+  box-shadow: none;
+}
+
+window.archive-window switch:checked {
+  background: @theme_accent;
+  border-color: @theme_accent;
+}
+
+window.archive-window switch > slider {
+  min-width: 18px;
+  min-height: 18px;
+  margin: 1px;
+  border-radius: 999px;
+  background: @theme_text;
+  border: none;
+  box-shadow: 0 1px 3px alpha(@theme_shadow, 0.5);
+}
+
+window.archive-window switch:checked > slider {
+  background: @theme_on_accent;
+}
+
+window.archive-window scale {
+  padding: 8px 4px;
+}
+
+window.archive-window scale > trough {
+  min-height: 4px;
+  min-width: 4px;
+  border-radius: 999px;
+  background: alpha(@theme_muted, 0.8);
+  border: none;
+}
+
+window.archive-window scale > trough > highlight {
+  border-radius: 999px;
+  background: @theme_accent;
+}
+
+window.archive-window scale > trough > slider,
+window.archive-window scale.marks-before > trough > slider,
+window.archive-window scale.marks-after > trough > slider {
+  -gtk-icon-source: none;
+  background-image: none;
+  min-width: 16px;
+  min-height: 16px;
+  margin: -7px;
+  border-radius: 999px;
+  background: @theme_text;
+  border: 2px solid @theme_accent;
+  box-shadow: 0 0 10px alpha(@theme_glow, 0.35);
+}
+
+window.archive-window scale:disabled {
+  opacity: 0.5;
+}
+
+window.archive-window scale marks {
+  color: alpha(@theme_dim_text, 0.7);
+}
+
+window.archive-window scrollbar {
+  background: transparent;
+}
+
+window.archive-window scrollbar slider {
+  min-width: 6px;
+  border-radius: 999px;
+  background: alpha(@theme_muted, 0.9);
+}
+
+/* ---------- Theme swatches ---------- */
+
+.theme-card {
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid alpha(@theme_border, 0.6);
+  background: mix(@theme_bg, @theme_muted, 0.2);
+}
+
+.theme-card:hover {
+  border-color: alpha(@theme_accent, 0.6);
+}
+
+.theme-card.selected {
+  border-color: @theme_accent;
+  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.72), 0 0 14px alpha(@theme_glow, 0.24);
+}
+
+.theme-card picture {
+  border-radius: 7px 7px 0 0;
+}
+
+.theme-card .theme-card-name {
+  padding: 8px 10px;
+  font-weight: 600;
+}
+
+.swatch {
+  min-width: 16px;
+  min-height: 16px;
+  border-radius: 4px;
+  border: 1px solid alpha(@theme_shadow, 0.4);
+}
+
+/* ---------- Banners and dialogs ---------- */
+
+.banner {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: alpha(@theme_accent, 0.12);
+  border: 1px solid alpha(@theme_accent, 0.45);
+  margin-bottom: 14px;
+}
+
+.banner.warning {
+  background: alpha(@theme_danger, 0.1);
+  border-color: alpha(@theme_danger, 0.45);
+}
+
+.toast {
+  margin: 18px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: @theme_surface;
+  border: 1px solid alpha(@theme_border, 0.8);
+  box-shadow: 0 4px 16px alpha(@theme_shadow, 0.5), 0 0 14px alpha(@theme_glow, 0.14);
+}
+
+.dialog-card {
+  background: @theme_bg;
+  border: 1px solid alpha(@theme_border, 0.65);
+  border-radius: 14px;
+  box-shadow: 0 0 28px alpha(@theme_glow, 0.08);
+  padding: 24px;
+}
+
+.code-block {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.86em;
+  background: alpha(@theme_shadow, 0.35);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: @theme_text;
+}
+
+textview.code-block > text {
+  background: transparent;
+  color: @theme_text;
+}
+
+.key-cap {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: alpha(@theme_muted, 0.55);
+  border: 1px solid alpha(@theme_border, 0.9);
+}
+
+/* ---------- Tags ---------- */
+
+.tag {
+  font-size: 0.72em;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: alpha(@theme_muted, 0.55);
+  color: @theme_dim_text;
+}
+
+.tag.accent {
+  background: alpha(@theme_accent, 0.18);
+  color: @theme_text;
+}
+
+.tag.danger {
+  background: alpha(@theme_danger, 0.14);
+  color: @theme_danger;
+}
+
+/* ---------- Segmented control ---------- */
+
+.segmented {
+  border-radius: 7px;
+  background: alpha(@theme_muted, 0.32);
+  border: 1px solid alpha(@theme_border, 0.8);
+  padding: 2px;
+}
+
+window.archive-window .segmented button.segment {
+  min-height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: alpha(@theme_text, 0.78);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+window.archive-window .segmented button.segment:hover {
+  background: alpha(@theme_highlight, 0.55);
+  color: @theme_text;
+}
+
+window.archive-window .segmented button.segment:checked {
+  background: @theme_accent;
+  color: @theme_on_accent;
+}
+
+
+/* ---------- Menus and drag and drop ---------- */
+
+window.archive-window popover.menu-popover > contents {
+  padding: 4px;
+  min-width: 200px;
+}
+
+window.archive-window button.menu-item {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+window.archive-window button.menu-item:hover {
+  background: alpha(@theme_accent, 0.18);
+}
+
+window.archive-window popover separator {
+  margin: 4px 6px;
+  background: alpha(@theme_border, 0.7);
+  min-height: 1px;
+}
+
+.menu-heading-inline {
+  font-weight: 700;
+}
+
+
+/* ---------- Inputs ---------- */
+
+window.archive-window entry,
+window.archive-window passwordentry {
+  min-height: 32px;
+  border-radius: 6px;
+  background: alpha(@theme_bg, 0.65);
+  border: 1px solid alpha(@theme_border, 0.8);
+  box-shadow: none;
+  color: @theme_text;
+  padding: 0 8px;
+}
+
+window.archive-window passwordentry text,
+window.archive-window entry text {
+  background: transparent;
+  color: @theme_text;
+}
+
+window.archive-window passwordentry:focus-within {
+  border-color: @theme_accent;
+  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.38);
+}
+
+window.archive-window entry.error {
+  border-color: @theme_danger;
+}
+
+window.archive-window entry.settings-search {
+  min-width: 180px;
+}
+
+/* ---------- Drop zone and recent list ---------- */
+
+.dropzone {
+  padding: 44px 24px;
+  border-radius: 14px;
+  border: 2px dashed alpha(@theme_border, 0.95);
+  background: mix(@theme_bg, @theme_muted, 0.18);
+  transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.dropzone.drop-hover {
+  border-color: @theme_accent;
+  background: alpha(@theme_accent, 0.10);
+  box-shadow: 0 0 14px alpha(@theme_glow, 0.24);
+}
+
+.dropzone-icon {
+  color: @theme_accent;
+}
+
+.dropzone-title {
+  font-size: 1.25em;
+  font-weight: 700;
+}
+
+.recent-row {
+  background: mix(@theme_bg, @theme_muted, 0.25);
+  border: 1px solid alpha(@theme_border, 0.55);
+  border-radius: 10px;
+  padding: 2px 6px 2px 2px;
+  transition: border-color 150ms ease-out;
+}
+
+.recent-row:hover {
+  border-color: alpha(@theme_border, 0.95);
+}
+
+window.archive-window .recent-row button.flat {
+  min-height: 48px;
+  padding: 4px 12px;
+}
+
+/* ---------- Browse ---------- */
+
+.browse-header {
+  padding: 18px 24px 10px;
+}
+
+.browse-title {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.browse-subtitle {
+  font-size: 0.86em;
+}
+
+window.archive-window button.tool-button {
+  padding: 0 12px;
+}
+
+window.archive-window .split-button button.suggested-action {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+window.archive-window .split-button menubutton.extract-more > button {
+  min-width: 0;
+  padding: 0 8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background: @theme_accent;
+  border-color: @theme_accent;
+  border-left-color: alpha(@theme_on_accent, 0.35);
+  color: @theme_on_accent;
+}
+
+.info-card {
+  margin: 4px 24px 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: mix(@theme_bg, @theme_muted, 0.25);
+  border: 1px solid alpha(@theme_border, 0.55);
+}
+
+.info-key {
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: alpha(@theme_dim_text, 0.9);
+}
+
+.path-bar {
+  padding: 4px 24px 8px;
+}
+
+window.archive-window button.crumb {
+  min-height: 28px;
+  padding: 0 8px;
+  color: @theme_dim_text;
+  font-weight: 500;
+}
+
+window.archive-window button.crumb.current {
+  color: @theme_text;
+  font-weight: 700;
+}
+
+.file-head {
+  padding: 0 24px 0 36px;
+}
+
+window.archive-window button.col-head {
+  min-height: 26px;
+  padding: 0 4px;
+  font-size: 0.82em;
+  font-weight: 700;
+  color: @theme_dim_text;
+}
+
+window.archive-window button.col-head:hover {
+  color: @theme_text;
+}
+
+.col-size {
+  min-width: 84px;
+}
+
+.col-packed {
+  min-width: 84px;
+}
+
+.col-modified {
+  min-width: 148px;
+}
+
+.file-list {
+  background: transparent;
+  padding: 0 14px;
+}
+
+.file-row {
+  min-height: 38px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin: 1px 0;
+  transition: background 150ms ease-out;
+}
+
+.file-row:hover {
+  background: alpha(@theme_highlight, 0.55);
+}
+
+.file-row:selected {
+  background: alpha(@theme_accent, 0.16);
+  box-shadow: inset 0 0 0 1px alpha(@theme_accent, 0.42);
+}
+
+.file-name {
+  font-weight: 500;
+}
+
+.file-path {
+  font-size: 0.78em;
+}
+
+.file-row .cell {
+  font-size: 0.86em;
+}
+
+.status-bar {
+  padding: 8px 28px 12px;
+  border-top: 1px solid alpha(@theme_border, 0.55);
+  font-size: 0.86em;
+}
+
+.empty-title {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: @theme_dim_text;
+}
+
+/* ---------- Create ---------- */
+
+.files-card {
+  border-radius: 10px;
+  background: mix(@theme_bg, @theme_muted, 0.25);
+  border: 1px solid alpha(@theme_border, 0.55);
+  padding: 6px;
+}
+
+.input-row {
+  padding: 4px 6px 4px 10px;
+  border-radius: 6px;
+}
+
+.input-row:hover {
+  background: alpha(@theme_highlight, 0.55);
+}
+
+.files-empty {
+  padding: 26px 16px;
+}
+
+.files-actions {
+  padding: 6px 4px 4px;
+}
+
+.create-footer {
+  padding: 12px 28px;
+  border-top: 1px solid alpha(@theme_border, 0.55);
+  background: @theme_surface;
+}
+
+window.archive-window button.path-button {
+  min-width: 0;
+}
+
+window.archive-window button.disclosure {
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: mix(@theme_bg, @theme_muted, 0.25);
+  border: 1px solid alpha(@theme_border, 0.55);
+}
+
+window.archive-window button.disclosure:hover {
+  background: alpha(@theme_highlight, 0.35);
+  border-color: alpha(@theme_border, 0.95);
+}
+
+.chevron {
+  color: @theme_dim_text;
+  transition: -gtk-icon-transform 150ms ease-out;
+}
+
+.chevron.open {
+  -gtk-icon-transform: rotate(90deg);
+}
+
+window.archive-window button.choice-button {
+  padding: 10px 14px;
+  min-height: 52px;
+}
+
+window.archive-window button.choice-button label {
+  min-width: 0;
+}
+
+/* ---------- Progress and toasts ---------- */
+
+.progress-card {
+  margin: 18px;
+  padding: 14px 16px;
+  min-width: 420px;
+  border-radius: 10px;
+  background: @theme_surface;
+  border: 1px solid alpha(@theme_border, 0.8);
+  box-shadow: 0 4px 16px alpha(@theme_shadow, 0.5), 0 0 14px alpha(@theme_glow, 0.14);
+}
+
+.progress-title {
+  font-weight: 700;
+}
+
+.progress-file {
+  font-size: 0.84em;
+  min-height: 1.2em;
+}
+
+progressbar.job-bar trough {
+  min-height: 6px;
+  border-radius: 999px;
+  background: alpha(@theme_muted, 0.8);
+  border: none;
+}
+
+progressbar.job-bar progress {
+  min-height: 6px;
+  border-radius: 999px;
+  background: @theme_accent;
+  border: none;
+}
+
+window.archive-window button.toast-action {
+  min-height: 28px;
+  color: @theme_accent;
+  font-weight: 700;
+}
+
+/* ---------- Narrow windows ---------- */
+
+window.archive-window.narrow button.tool-button {
+  padding: 0 9px;
+}
+
+window.archive-window.narrow .settings-page {
+  padding: 22px 18px 40px;
+}
+
+window.archive-window.narrow .browse-header {
+  padding: 14px 14px 8px;
+}
+
+window.archive-window.narrow .path-bar,
+window.archive-window.narrow .info-card {
+  margin-left: 14px;
+  margin-right: 14px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+window.archive-window.narrow .path-bar {
+  margin: 0;
+  padding: 4px 14px 8px;
+}
+
+window.archive-window.narrow .file-head {
+  padding: 0 14px 0 26px;
+}
+
+window.archive-window.narrow .create-footer {
+  padding: 10px 14px;
+}
+
+window.archive-window.narrow .progress-card {
+  min-width: 0;
+  margin: 10px;
+}
