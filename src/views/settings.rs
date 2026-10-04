@@ -16,11 +16,11 @@ pub const SHORTCUTS: &[(&[&str], &str)] = &[
     (&["Menu"], "More actions for the selection (or right-click)"),
     (&["Esc"], "Clear the search, unselect, or go back"),
     (&["Ctrl", ","], "Settings"),
-    (&["?"], "This list"),
+    (&["F1"], "This list (or ?)"),
     (&["Ctrl", "Q"], "Close"),
 ];
 
-/// The keyboard shortcuts on their own, for `?` and F1.
+/// The keyboard shortcuts on their own, for F1 and `?`.
 pub fn show_help() {
     let (dialog, card) = widgets::dialog("Keyboard shortcuts", 460);
     let list = widgets::vbox(0);
@@ -49,12 +49,12 @@ pub fn show_help() {
     close.grab_focus();
 }
 
+/// Settings, as a card over the window (see `settings_dialog`).
 pub fn show() {
-    let (dialog, card) = widgets::dialog("Settings", 560);
-    dialog.set_default_height(640);
     let p = prefs::get();
 
     let body = widgets::vbox(0);
+    body.add_css_class("settings-page");
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .vscrollbar_policy(gtk::PolicyType::External)
@@ -62,11 +62,17 @@ pub fn show() {
         .vexpand(true)
         .build();
 
+    // A group: its heading, then one card holding its rows. The dialog lists
+    // groups by their widget name.
     let group = |title: &str| {
-        let g = widgets::vbox(6);
-        let t = widgets::label(&title.to_uppercase(), "group-title");
-        body.append(&t);
-        body.append(&g);
+        let wrapper = widgets::vbox(0);
+        wrapper.add_css_class("settings-group");
+        wrapper.set_widget_name(title);
+        wrapper.append(&widgets::label(&title.to_uppercase(), "group-title"));
+        let g = widgets::vbox(0);
+        g.add_css_class("group-list");
+        wrapper.append(&g);
+        body.append(&wrapper);
         g
     };
 
@@ -128,7 +134,7 @@ pub fn show() {
         let dd = theme_dd.clone();
         let (r, _) = widgets::switch_row(
             "Follow Omarchy theme",
-            "Match the desktop's colours and update live whenever the Omarchy theme changes.",
+            "Match the desktop's colors and update live whenever the Omarchy theme changes.",
             p.mode == prefs::ThemeMode::Omarchy,
             move |on| {
                 prefs::update(|p| p.mode = if on { prefs::ThemeMode::Omarchy } else { prefs::ThemeMode::Theme });
@@ -173,7 +179,7 @@ pub fn show() {
         }
         glib::ControlFlow::Continue
     });
-    g.append(&widgets::row("Current colours", "", Some(swatches.upcast_ref())));
+    g.append(&widgets::row("Current colors", "", Some(swatches.upcast_ref())));
     let (r, _) = widgets::switch_row("Glow", "Soft accent glow around focused and selected elements.", p.glow, |on| {
         prefs::update(|p| p.glow = on);
         theme::apply();
@@ -191,12 +197,5 @@ pub fn show() {
         g.append(&widgets::row(what, "", Some(widgets::key_caps(keys).upcast_ref())));
     }
 
-    card.append(&scroll);
-    let close = gtk::Button::with_label("Done");
-    close.set_halign(gtk::Align::End);
-    close.add_css_class("suggested-action");
-    let d = dialog.clone();
-    close.connect_clicked(move |_| d.close());
-    card.append(&close);
-    dialog.present();
+    window::open_settings(&scroll, &body);
 }

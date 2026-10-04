@@ -1,9 +1,20 @@
-/* Nexus Archive — Nexus app style (see ~/Projects/STYLE.md). Every colour comes from the
- * @theme_* tokens defined by the active palette (see theme.rs). */
+/* Archive — Nexus app style. One flat surface split by hairlines, monospace
+ * throughout. Every colour comes from the @theme_* tokens defined by the active
+ * palette (see theme.rs), or from the mixes of them below. */
+
+@define-color hairline mix(@theme_bg, @theme_border, 0.82);
+@define-color divider alpha(@theme_text, 0.08);
+@define-color nav_active mix(@theme_bg, @theme_accent, 0.18);
+@define-color row_hover mix(@theme_bg, @theme_accent, 0.07);
+@define-color lift mix(@theme_bg, @theme_muted, 0.09);
+@define-color lift_active mix(@lift, @theme_accent, 0.1);
+@define-color veil alpha(mix(@theme_bg, @theme_shadow, 0.45), 0.82);
 
 window.archive-window {
   background: @theme_bg;
   color: @theme_text;
+  font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", monospace;
+  font-weight: 500;
 }
 
 window.archive-window,
@@ -18,6 +29,7 @@ window.archive-window dialog {
   font-feature-settings: "tnum";
 }
 
+
 /* ---------- Content ---------- */
 
 .settings-content {
@@ -25,38 +37,39 @@ window.archive-window dialog {
 }
 
 .settings-page {
-  padding: 30px 36px 48px;
+  padding: 12px 24px 36px;
+}
+
+/* A page's first heading sits right under the top padding, so the space
+ * above it matches the space below it. */
+.settings-page > .settings-group:first-child > .group-title,
+.settings-page > .settings-group:first-child > .group-head,
+.settings-page > .settings-group:first-child > box:first-child > .group-title,
+.group-title.page-first,
+.group-head.page-first {
+  margin-top: 0;
 }
 
 .settings-page.narrow {
-  padding: 22px 18px 40px;
-}
-
-.section-header {
-  margin-bottom: 8px;
+  padding: 12px 16px 32px;
 }
 
 .section-title {
-  font-size: 1.62em;
-  font-weight: 800;
+  font-size: 1.3em;
+  font-weight: 700;
   color: @theme_text;
 }
 
-.section-description {
-  margin-top: 2px;
-  color: @theme_dim_text;
-}
-
 .group-title {
-  margin: 24px 2px 8px;
-  font-size: 0.76em;
-  font-weight: 800;
-  letter-spacing: 1.6px;
+  margin: 26px 2px 12px;
+  font-size: 0.9em;
+  font-weight: 600;
+  letter-spacing: 2px;
   color: @theme_dim_text;
 }
 
 .group-note {
-  margin: -2px 2px 10px;
+  margin: -6px 2px 12px;
   font-size: 0.88em;
   color: @theme_dim_text;
 }
@@ -66,25 +79,14 @@ window.archive-window dialog {
 }
 
 .settings-option {
-  background: mix(@theme_bg, @theme_muted, 0.25);
-  border: 1px solid alpha(@theme_border, 0.55);
-  border-radius: 6px;
-  min-height: 60px;
-  padding: 10px 14px;
-  transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out;
-}
-
-.settings-option:hover {
-  border-color: alpha(@theme_border, 0.95);
-}
-
-.settings-option.search-hit {
-  border-color: alpha(@theme_accent, 0.72);
-  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.38), 0 0 14px alpha(@theme_glow, 0.24);
+  border: 1px solid @hairline;
+  border-radius: 10px;
+  min-height: 52px;
+  padding: 10px 20px;
 }
 
 .settings-option.tall {
-  padding: 14px 16px;
+  padding: 14px 20px;
 }
 
 .settings-option-title {
@@ -126,22 +128,22 @@ window.archive-window dialog {
   color: @theme_accent;
 }
 
+
 /* ---------- Buttons ---------- */
 
 window.archive-window button {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 6px;
-  background: alpha(@theme_muted, 0.32);
-  border: 1px solid alpha(@theme_border, 0.8);
+  background: transparent;
+  border: 1px solid @hairline;
   box-shadow: none;
   color: @theme_text;
   transition: background 150ms ease-out, border-color 150ms ease-out;
 }
 
 window.archive-window button:hover {
-  background: alpha(@theme_muted, 0.55);
-  border-color: alpha(@theme_accent, 0.55);
+  background: @row_hover;
 }
 
 window.archive-window button:active {
@@ -153,14 +155,14 @@ window.archive-window button:disabled {
 }
 
 window.archive-window button.suggested-action {
-  background: @theme_accent;
-  border-color: @theme_accent;
-  color: @theme_on_accent;
-  font-weight: 700;
+  background: @nav_active;
+  border-color: transparent;
+  color: @theme_text;
+  font-weight: 600;
 }
 
 window.archive-window button.suggested-action:hover {
-  background: mix(@theme_accent, @theme_text, 0.12);
+  background: mix(@theme_bg, @theme_accent, 0.26);
 }
 
 window.archive-window button.destructive-action {
@@ -175,7 +177,7 @@ window.archive-window button.flat {
 }
 
 window.archive-window button.flat:hover {
-  background: alpha(@theme_highlight, 0.55);
+  background: @row_hover;
 }
 
 window.archive-window button.reset-button {
@@ -186,37 +188,28 @@ window.archive-window button.reset-button {
   color: @theme_dim_text;
 }
 
-window.archive-window button.open-config {
-  min-height: 34px;
-  padding: 0 14px;
-  font-weight: 600;
-}
-
-window.archive-window button.open-config image {
-  color: @theme_accent;
-}
-
 window.archive-window button.chip {
   min-height: 28px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 0.9em;
 }
 
 window.archive-window button.chip.selected {
-  background: alpha(@theme_accent, 0.2);
-  border-color: alpha(@theme_accent, 0.8);
+  background: @nav_active;
+  border-color: transparent;
   color: @theme_text;
 }
+
 
 /* ---------- Inputs ---------- */
 
 window.archive-window entry,
 window.archive-window spinbutton {
   min-height: 32px;
-  border-radius: 5px;
-  background: alpha(@theme_bg, 0.65);
-  border: 1px solid alpha(@theme_border, 0.8);
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid @hairline;
   box-shadow: none;
   color: @theme_text;
 }
@@ -224,7 +217,7 @@ window.archive-window spinbutton {
 window.archive-window entry:focus-within,
 window.archive-window spinbutton:focus-within {
   border-color: @theme_accent;
-  box-shadow: 0 0 0 1px alpha(@theme_accent, 0.38);
+  box-shadow: none;
 }
 
 window.archive-window dropdown > button {
@@ -254,31 +247,30 @@ window.archive-window popover listview > row:selected {
 }
 
 window.archive-window switch {
-  min-width: 40px;
-  min-height: 22px;
+  min-width: 44px;
+  min-height: 26px;
   border-radius: 999px;
-  background: alpha(@theme_muted, 0.85);
-  border: 1px solid alpha(@theme_border, 0.9);
+  background: alpha(@theme_muted, 0.3);
+  border: 1px solid @hairline;
   box-shadow: none;
 }
 
 window.archive-window switch:checked {
-  background: @theme_accent;
-  border-color: @theme_accent;
+  background: mix(@theme_bg, @theme_accent, 0.25);
 }
 
 window.archive-window switch > slider {
   min-width: 18px;
   min-height: 18px;
-  margin: 1px;
+  margin: 3px;
   border-radius: 999px;
-  background: @theme_text;
+  background: @theme_dim_text;
   border: none;
-  box-shadow: 0 1px 3px alpha(@theme_shadow, 0.5);
+  box-shadow: none;
 }
 
 window.archive-window switch:checked > slider {
-  background: @theme_on_accent;
+  background: @theme_accent;
 }
 
 window.archive-window scale {
@@ -330,6 +322,7 @@ window.archive-window scrollbar slider {
   background: alpha(@theme_muted, 0.9);
 }
 
+
 /* ---------- Theme swatches ---------- */
 
 .theme-card {
@@ -364,6 +357,7 @@ window.archive-window scrollbar slider {
   border: 1px solid alpha(@theme_shadow, 0.4);
 }
 
+
 /* ---------- Banners and dialogs ---------- */
 
 .banner {
@@ -379,8 +373,30 @@ window.archive-window scrollbar slider {
   border-color: alpha(@theme_danger, 0.45);
 }
 
+/* Buttons on a banner are its action: a solid accent, so they stand out on the tint. */
+window.archive-window .banner button {
+  background: @theme_accent;
+  border-color: @theme_accent;
+  color: @theme_on_accent;
+  font-weight: 600;
+}
+
+window.archive-window .banner button:hover {
+  background: mix(@theme_accent, @theme_text, 0.12);
+}
+
+window.archive-window .banner.warning button {
+  background: @theme_danger;
+  border-color: @theme_danger;
+}
+
+window.archive-window .banner.warning button:hover {
+  background: mix(@theme_danger, @theme_text, 0.12);
+}
+
 .toast {
-  margin: 18px;
+  /* Above the player bar and the status bar. */
+  margin: 18px 18px 104px;
   padding: 10px 16px;
   border-radius: 8px;
   background: @theme_surface;
@@ -419,6 +435,7 @@ textview.code-block > text {
   border: 1px solid alpha(@theme_border, 0.9);
 }
 
+
 /* ---------- Tags ---------- */
 
 .tag {
@@ -440,12 +457,13 @@ textview.code-block > text {
   color: @theme_danger;
 }
 
+
 /* ---------- Segmented control ---------- */
 
 .segmented {
-  border-radius: 7px;
-  background: alpha(@theme_muted, 0.32);
-  border: 1px solid alpha(@theme_border, 0.8);
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid @hairline;
   padding: 2px;
 }
 
@@ -461,13 +479,13 @@ window.archive-window .segmented button.segment {
 }
 
 window.archive-window .segmented button.segment:hover {
-  background: alpha(@theme_highlight, 0.55);
+  background: @row_hover;
   color: @theme_text;
 }
 
 window.archive-window .segmented button.segment:checked {
-  background: @theme_accent;
-  color: @theme_on_accent;
+  background: @nav_active;
+  color: @theme_text;
 }
 
 
@@ -536,13 +554,13 @@ window.archive-window entry.settings-search {
   padding: 14px 16px;
 }
 
+
 /* ---------- Drop zone and recent list ---------- */
 
 .dropzone {
   padding: 44px 24px;
   border-radius: 14px;
   border: 2px dashed alpha(@theme_border, 0.95);
-  background: mix(@theme_bg, @theme_muted, 0.18);
   transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out;
 }
 
@@ -562,8 +580,7 @@ window.archive-window entry.settings-search {
 }
 
 .recent-row {
-  background: mix(@theme_bg, @theme_muted, 0.25);
-  border: 1px solid alpha(@theme_border, 0.55);
+  border: 1px solid @hairline;
   border-radius: 10px;
   padding: 2px 6px 2px 2px;
   transition: border-color 150ms ease-out;
@@ -578,19 +595,19 @@ window.archive-window .recent-row button.flat {
   padding: 4px 12px;
 }
 
+
 /* ---------- Browse ---------- */
 
+/* The archive's toolbar sits on a hairline above the path and the list. */
 .browse-header {
-  padding: 18px 24px 10px;
+  min-height: 46px;
+  padding: 0 12px 0 14px;
+  border-bottom: 1px solid @hairline;
 }
 
-.browse-title {
-  font-size: 1.3em;
-  font-weight: 700;
-}
-
-.browse-subtitle {
-  font-size: 0.86em;
+.browse-header > * {
+  margin-top: 7px;
+  margin-bottom: 7px;
 }
 
 window.archive-window button.tool-button {
@@ -607,18 +624,15 @@ window.archive-window .split-button menubutton.extract-more > button {
   padding: 0 8px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  background: @theme_accent;
-  border-color: @theme_accent;
-  border-left-color: alpha(@theme_on_accent, 0.35);
-  color: @theme_on_accent;
+  background: @nav_active;
+  border-color: transparent;
+  border-left-color: alpha(@theme_accent, 0.3);
+  color: @theme_accent;
 }
 
 .info-card {
-  margin: 4px 24px 10px;
   padding: 12px 18px;
-  border-radius: 10px;
-  background: mix(@theme_bg, @theme_muted, 0.25);
-  border: 1px solid alpha(@theme_border, 0.55);
+  border-bottom: 1px solid @hairline;
 }
 
 .info-key {
@@ -628,8 +642,16 @@ window.archive-window .split-button menubutton.extract-more > button {
   color: alpha(@theme_dim_text, 0.9);
 }
 
+/* Where you are in the archive, and its search, on a hairline. */
 .path-bar {
-  padding: 4px 24px 8px;
+  min-height: 44px;
+  padding: 0 12px 0 10px;
+  border-bottom: 1px solid @hairline;
+}
+
+.path-bar > * {
+  margin-top: 6px;
+  margin-bottom: 6px;
 }
 
 window.archive-window button.crumb {
@@ -640,19 +662,23 @@ window.archive-window button.crumb {
 }
 
 window.archive-window button.crumb.current {
-  color: @theme_text;
-  font-weight: 700;
+  color: @theme_accent;
+  font-weight: 500;
 }
 
 .file-head {
-  padding: 0 24px 0 36px;
+  min-height: 34px;
+  padding: 0 10px 0 20px;
+  border-bottom: 1px solid @hairline;
 }
 
 window.archive-window button.col-head {
-  min-height: 26px;
+  min-height: 34px;
   padding: 0 4px;
-  font-size: 0.82em;
-  font-weight: 700;
+  border: none;
+  border-radius: 0;
+  font-size: 0.86em;
+  font-weight: 500;
   color: @theme_dim_text;
 }
 
@@ -674,24 +700,24 @@ window.archive-window button.col-head:hover {
 
 listview.file-list {
   background: transparent;
-  padding: 0 14px;
+  padding: 0;
 }
 
 listview.file-list > row {
   padding: 0;
-  margin: 1px 0;
-  border-radius: 6px;
+  margin: 0;
+  border-radius: 0;
   background: transparent;
   transition: background 150ms ease-out;
 }
 
 listview.file-list > row:hover {
-  background: alpha(@theme_highlight, 0.55);
+  background: @row_hover;
 }
 
 listview.file-list > row:selected {
-  background: alpha(@theme_accent, 0.16);
-  box-shadow: inset 0 0 0 1px alpha(@theme_accent, 0.42);
+  background: @nav_active;
+  box-shadow: none;
   color: @theme_text;
 }
 
@@ -700,8 +726,8 @@ listview.file-list > row:focus-visible {
 }
 
 .file-row {
-  min-height: 38px;
-  padding: 3px 10px;
+  min-height: 35px;
+  padding: 0 10px 0 10px;
 }
 
 .row-chevron {
@@ -723,10 +749,6 @@ listview.file-list > row:not(:hover) .file-row.folder .row-chevron {
 }
 
 .file-row .cell {
-  font-size: 0.86em;
-}
-
-.status-hint {
   font-size: 0.86em;
 }
 
@@ -763,23 +785,25 @@ window.archive-window checkbutton check:checked {
 }
 
 .status-bar {
-  padding: 8px 28px 12px;
-  border-top: 1px solid alpha(@theme_border, 0.55);
+  min-height: 34px;
+  padding: 0 16px 0 10px;
+  border-top: 1px solid @hairline;
   font-size: 0.86em;
+  color: @theme_dim_text;
 }
 
 .empty-title {
-  font-size: 1.1em;
-  font-weight: 700;
-  color: @theme_dim_text;
+  font-size: 1.2em;
+  font-weight: 800;
+  color: @theme_text;
 }
+
 
 /* ---------- Create ---------- */
 
 .files-card {
   border-radius: 10px;
-  background: mix(@theme_bg, @theme_muted, 0.25);
-  border: 1px solid alpha(@theme_border, 0.55);
+  border: 1px solid @hairline;
   padding: 6px;
 }
 
@@ -789,7 +813,7 @@ window.archive-window checkbutton check:checked {
 }
 
 .input-row:hover {
-  background: alpha(@theme_highlight, 0.55);
+  background: @row_hover;
 }
 
 .files-empty {
@@ -802,7 +826,7 @@ window.archive-window checkbutton check:checked {
 
 .create-footer {
   padding: 12px 28px;
-  border-top: 1px solid alpha(@theme_border, 0.55);
+  border-top: 1px solid @hairline;
   background: @theme_surface;
 }
 
@@ -815,7 +839,7 @@ window.archive-window button.disclosure {
   padding: 10px 14px;
   border-radius: 6px;
   background: mix(@theme_bg, @theme_muted, 0.25);
-  border: 1px solid alpha(@theme_border, 0.55);
+  border: 1px solid @hairline;
 }
 
 window.archive-window button.disclosure:hover {
@@ -840,6 +864,7 @@ window.archive-window button.choice-button {
 window.archive-window button.choice-button label {
   min-width: 0;
 }
+
 
 /* ---------- Progress and toasts ---------- */
 
@@ -878,9 +903,12 @@ progressbar.job-bar progress {
 
 window.archive-window button.toast-action {
   min-height: 28px;
-  color: @theme_accent;
+  margin: -4px -8px -4px 0;
+  padding: 0 12px;
   font-weight: 700;
+  color: @theme_accent;
 }
+
 
 /* ---------- Narrow windows ---------- */
 
@@ -889,28 +917,12 @@ window.archive-window.narrow button.tool-button {
 }
 
 window.archive-window.narrow .settings-page {
-  padding: 22px 18px 40px;
+  padding: 12px 16px 40px;
 }
 
-window.archive-window.narrow .browse-header {
-  padding: 14px 14px 8px;
-}
-
-window.archive-window.narrow .path-bar,
 window.archive-window.narrow .info-card {
-  margin-left: 14px;
-  margin-right: 14px;
   padding-left: 14px;
   padding-right: 14px;
-}
-
-window.archive-window.narrow .path-bar {
-  margin: 0;
-  padding: 4px 14px 8px;
-}
-
-window.archive-window.narrow .file-head {
-  padding: 0 14px 0 26px;
 }
 
 window.archive-window.narrow .create-footer {
@@ -920,4 +932,239 @@ window.archive-window.narrow .create-footer {
 window.archive-window.narrow .progress-card {
   min-width: 0;
   margin: 10px;
+}
+
+
+/* ---------- Top bar and status bar ---------- */
+
+.window-frame {
+  background: @theme_bg;
+}
+
+.top-bar {
+  min-height: 46px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid @hairline;
+}
+
+.crumbs {
+  margin-left: 8px;
+}
+
+.crumb-root,
+.crumb-sep {
+  color: @theme_dim_text;
+}
+
+.crumb {
+  color: @theme_accent;
+}
+
+window.archive-window button.bar-button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 6px;
+  border-color: transparent;
+  background: transparent;
+  color: @theme_dim_text;
+}
+
+window.archive-window button.bar-button:hover {
+  background: @row_hover;
+  color: @theme_text;
+}
+
+/* A config-file menu in the top bar looks like the other bar buttons. */
+window.archive-window menubutton.bar-button > button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 6px;
+  border-color: transparent;
+  background: transparent;
+  color: @theme_dim_text;
+}
+
+window.archive-window menubutton.bar-button > button:hover {
+  background: @row_hover;
+  color: @theme_text;
+}
+
+window.archive-window entry.bar-search {
+  min-height: 30px;
+  margin-right: 4px;
+}
+
+window.archive-window button.status-help {
+  min-height: 24px;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: @theme_dim_text;
+  font-weight: 500;
+}
+
+window.archive-window button.status-help:hover {
+  color: @theme_text;
+}
+
+.status-key {
+  color: @theme_text;
+}
+
+.settings-navigation .nav-group.first {
+  margin-top: 0;
+  padding-top: 6px;
+  border-top: none;
+}
+
+.settings-navigation.compact .nav-group {
+  margin: 8px -6px;
+  padding: 0;
+  min-height: 0;
+  font-size: 0;
+}
+
+.settings-navigation.compact .nav-group.first {
+  border-top: none;
+  margin: 0;
+}
+
+.group-list {
+  border: 1px solid @hairline;
+  border-radius: 10px;
+}
+
+.group-list .settings-option {
+  border: none;
+  border-top: 1px solid @divider;
+  border-radius: 0;
+}
+
+.group-list > .settings-option:first-child,
+.group-list > box:first-child > .settings-option:first-child {
+  border-top: none;
+}
+
+
+/* Toolbar controls sit centred in the row instead of stretching to it. */
+
+.toolbar > *,
+.list-toolbar > * {
+  margin-top: 7px;
+  margin-bottom: 7px;
+}
+
+window.archive-window columnview > header,
+window.archive-window columnview > header > button,
+window.archive-window columnview > header > button > box {
+  font-size: 1em;
+}
+
+
+/* ---------- Settings dialog ---------- */
+
+.settings-veil {
+  background: @veil;
+}
+
+.settings-dialog {
+  background: @theme_bg;
+  border: 1px solid @hairline;
+  border-radius: 14px;
+  box-shadow: 0 8px 40px alpha(@theme_shadow, 0.6);
+}
+
+.settings-dialog-side {
+  min-width: 280px;
+  padding: 22px 14px;
+  border-right: 1px solid @hairline;
+}
+
+.settings-dialog.narrow .settings-dialog-side {
+  min-width: 200px;
+  padding: 18px 8px;
+}
+
+.settings-dialog.narrow .dialog-head {
+  padding: 0 12px 0 20px;
+}
+
+.settings-dialog.narrow .settings-dialog-main .settings-page {
+  padding: 16px 16px 24px;
+}
+
+.dialog-heading {
+  margin: 0 4px 16px;
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  color: @theme_dim_text;
+}
+
+window.archive-window button.dialog-nav {
+  min-height: 0;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+}
+
+window.archive-window button.dialog-nav image {
+  margin-top: 2px;
+  color: @theme_dim_text;
+}
+
+window.archive-window button.dialog-nav:hover {
+  background: @row_hover;
+}
+
+window.archive-window button.dialog-nav.active {
+  background: @lift_active;
+}
+
+window.archive-window button.dialog-nav.active image {
+  color: @theme_accent;
+}
+
+.dialog-nav-title {
+  font-weight: 600;
+  color: alpha(@theme_text, 0.82);
+}
+
+window.archive-window button.dialog-nav.active .dialog-nav-title {
+  color: @theme_text;
+}
+
+.dialog-nav-summary {
+  font-size: 0.86em;
+  color: @theme_dim_text;
+}
+
+.settings-dialog-main {
+  background: @lift;
+}
+
+.dialog-head {
+  min-height: 64px;
+  padding: 0 18px 0 32px;
+  border-bottom: 1px solid @hairline;
+}
+
+.dialog-title {
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.dialog-empty {
+  color: @theme_dim_text;
+}
+
+.settings-dialog-main .settings-page {
+  padding: 28px 40px 40px;
+}
+
+.settings-dialog-main .settings-page.narrow {
+  padding: 20px 20px 28px;
 }

@@ -1,9 +1,10 @@
-//! The main window: a stack of three views (home, browse, create) with a progress
-//! card and toasts floating over it.
+//! The main window: a top bar (back, where you are, settings, close), a stack of
+//! three views (home, browse, create) and a status bar, with a progress card,
+//! the settings card and toasts floating over it.
 
 use crate::sevenzip::job::{self, Cancel, Event, Op, Outcome};
 use crate::views::{browse::Browse, create::Create, home::Home};
-use crate::{paths, prefs, sevenzip, theme, widgets};
+use crate::{paths, prefs, settings_dialog, sevenzip, theme, widgets};
 use gtk::prelude::*;
 use gtk::{gio, glib};
 use std::cell::{Cell, RefCell};
@@ -43,6 +44,9 @@ struct Ui {
     browse: Rc<Browse>,
     create: Rc<Create>,
     cancel: RefCell<Option<Cancel>>,
+    /// The view's name in the top bar, and the back button beside it.
+    crumb: gtk::Label,
+    back: gtk::Button,
 }
 
 thread_local! {
@@ -117,6 +121,32 @@ pub fn show(view: &str) {
         if view == "home" {
             ui.home.refresh();
         }
+        refresh_bars(&ui);
+    }
+}
+
+/// The top bar names the view (the archive's name while browsing); the browse
+/// parts of both bars show only while browsing.
+fn refresh_bars(ui: &Ui) {
+    let view = ui.stack.visible_child_name().map(|n| n.to_string()).unwrap_or_default();
+    let browsing = view == "browse";
+    ui.crumb.set_text(&match view.as_str() {
+        "browse" => ui.browse.title.text().to_string(),
+        "create" => "New archive".to_string(),
+        _ => "Home".to_string(),
+    });
+    ui.back.set_visible(view != "home");
+    for w in [ui.browse.readonly.upcast_ref::<gtk::Widget>(), ui.browse.subtitle.upcast_ref(), ui.browse.status.upcast_ref()] {
+        if let Some(parent) = w.parent() {
+            parent.set_visible(browsing);
+        }
+    }
+}
+
+/// Settings, as a card over the window.
+pub fn open_settings(page: &gtk::ScrolledWindow, body: &gtk::Box) {
+    if let Some(ui) = ui() {
+        settings_dialog::open(&ui.overlay, &ui.window, page, body);
     }
 }
 
@@ -198,14 +228,74 @@ fn build(app: &gtk::Application) {
         .vscrollbar_policy(gtk::PolicyType::Never)
         .child(&stack)
         .build();
+    holder.set_vexpand(true);
+
+    // The bar across the top: back and where you are on the left; settings and
+    // close on the right. The read-only tag follows the archive's name.
+    let top = widgets::hbox(4);
+    top.add_css_class("top-bar");
+    let back = widgets::bar_button("go-previous-symbolic", "Back to start (Esc)");
+    back.connect_clicked(|_| show("home"));
+    top.append(&back);
+    let crumbs = widgets::hbox(10);
+    crumbs.add_css_class("crumbs");
+    crumbs.append(&widgets::label("Archive", "crumb-root"));
+    crumbs.append(&widgets::label("/", "crumb-sep"));
+    let crumb = widgets::label("", "crumb");
+    crumb.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+    crumbs.append(&crumb);
+    let tag = widgets::hbox(0);
+    tag.append(&browse.readonly);
+    crumbs.append(&tag);
+    crumbs.set_hexpand(true);
+    top.append(&crumbs);
+    let gear = widgets::bar_button("emblem-system-symbolic", "Settings (Ctrl+,)");
+    gear.connect_clicked(|_| crate::views::settings::show());
+    top.append(&gear);
+    let close = widgets::bar_button("window-close-symbolic", "Close (Ctrl+Q)");
+    let w = window.clone();
+    close.connect_clicked(move |_| w.close());
+    top.append(&close);
+
+    // The bar along the bottom: the shortcuts on the left; while browsing, the
+    // archive and what's shown and selected on the right.
+    let status = widgets::hbox(16);
+    status.add_css_class("status-bar");
+    let help = gtk::Button::new();
+    help.add_css_class("status-help");
+    let help_content = widgets::hbox(10);
+    help_content.append(&widgets::label("F1", "status-key"));
+    help_content.append(&widgets::label("Shortcuts", ""));
+    help.set_child(Some(&help_content));
+    help.set_tooltip_text(Some("Show the keyboard shortcuts"));
+    help.connect_clicked(|_| crate::views::settings::show_help());
+    status.append(&help);
+    let spacer = widgets::hbox(0);
+    spacer.set_hexpand(true);
+    status.append(&spacer);
+    let about = widgets::hbox(0);
+    about.add_css_class("col-hide-narrow");
+    about.append(&browse.subtitle);
+    status.append(&about);
+    let counts = widgets::hbox(0);
+    counts.append(&browse.status);
+    status.append(&counts);
+
+    let frame = widgets::vbox(0);
+    frame.add_css_class("window-frame");
+    frame.append(&top);
+    frame.append(&holder);
+    frame.append(&status);
+
     let overlay = gtk::Overlay::new();
-    overlay.set_child(Some(&holder));
+    overlay.set_child(Some(&frame));
     overlay.add_overlay(&progress.root);
     window.set_child(Some(&overlay));
 
     // The window has no resize signal worth trusting, so a tick callback watches the width.
     window.add_tick_callback(|w, _| {
         let width = w.width();
+        settings_dialog::fit(w);
         let tier = |x: i32| SHED.iter().filter(|(_, below)| x < *below).count() + usize::from(x < STACK_ROWS_BELOW);
         let old = WIDTH.with(Cell::get);
         if old == 0 || tier(old) != tier(width) {
@@ -231,9 +321,26 @@ fn build(app: &gtk::Application) {
         }
     });
 
-    UI.with(|u| {
-        *u.borrow_mut() = Some(Rc::new(Ui { window: window.clone(), stack, overlay, progress, home, browse, create, cancel: RefCell::new(None) }))
+    // The top bar follows the archive's name as archives open.
+    browse.title.connect_label_notify(|_| {
+        if let Some(ui) = ui() {
+            refresh_bars(&ui);
+        }
     });
+    let state = Rc::new(Ui {
+        window: window.clone(),
+        stack,
+        overlay,
+        progress,
+        home,
+        browse,
+        create,
+        cancel: RefCell::new(None),
+        crumb,
+        back,
+    });
+    refresh_bars(&state);
+    UI.with(|u| *u.borrow_mut() = Some(state));
     install_keys(&window);
     window.connect_close_request(|_| {
         prefs::flush();
@@ -279,7 +386,9 @@ fn install_keys(window: &gtk::ApplicationWindow) {
         }
     });
     add("<Control>f", || {
-        if let Some(ui) = ui()
+        if settings_dialog::is_open() {
+            settings_dialog::focus_search();
+        } else if let Some(ui) = ui()
             && current() == "browse"
         {
             ui.browse.focus_search();
@@ -302,6 +411,13 @@ fn install_keys(window: &gtk::ApplicationWindow) {
         let Some(ui) = ui() else { return glib::Propagation::Proceed };
         let ctrl = state.contains(gtk::gdk::ModifierType::CONTROL_MASK);
         let view = current();
+        if settings_dialog::is_open() {
+            if key == gtk::gdk::Key::Escape {
+                settings_dialog::escape();
+                return glib::Propagation::Stop;
+            }
+            return glib::Propagation::Proceed;
+        }
         match key {
             gtk::gdk::Key::Escape => {
                 if view == "browse" {
@@ -482,7 +598,7 @@ pub fn run_job(op: Op, info: JobInfo, done: impl FnOnce(Outcome) + 'static) {
 pub fn report_failure(outcome: &Outcome) {
     match outcome {
         Outcome::Ok => {}
-        Outcome::Cancelled => toast("Cancelled."),
+        Outcome::Cancelled => toast("Canceled."),
         Outcome::WrongPassword => toast("That password didn't work."),
         Outcome::Failed(m) => {
             let short = job::summary(m);

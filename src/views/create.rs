@@ -68,30 +68,17 @@ impl Create {
         let body = widgets::vbox(0);
         body.add_css_class("settings-page");
 
-        // ----- Header -----
-        let header = widgets::hbox(10);
-        header.add_css_class("section-header");
-        let back = widgets::icon_button("go-previous-symbolic", "Back to start");
-        back.connect_clicked(|_| window::show("home"));
-        header.append(&back);
-        let text = widgets::vbox(0);
-        text.set_hexpand(true);
-        text.append(&widgets::label("New archive", "section-title"));
-        let desc = widgets::label("Choose what goes in, then how it should be packed.", "section-description");
-        desc.set_wrap(true);
-        text.append(&desc);
-        header.append(&text);
-        body.append(&header);
-
         // ----- Files -----
         let g = widgets::vbox(0);
         let head = widgets::hbox(8);
+        // The page's first heading: no space above it, as on every page.
         let t = widgets::label("FILES", "group-title");
+        t.add_css_class("page-first");
         t.set_hexpand(true);
         head.append(&t);
         let files_summary = widgets::label("", "mono");
         files_summary.add_css_class("dim");
-        files_summary.set_margin_top(24);
+        files_summary.set_valign(gtk::Align::Start);
         head.append(&files_summary);
         g.append(&head);
         let card = widgets::vbox(0);

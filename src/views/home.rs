@@ -39,20 +39,6 @@ impl Home {
         let body = widgets::vbox(0);
         body.add_css_class("settings-page");
 
-        let header = widgets::hbox(12);
-        header.add_css_class("section-header");
-        let text = widgets::vbox(0);
-        text.set_hexpand(true);
-        text.append(&widgets::label("Nexus Archive", "section-title"));
-        let d = widgets::label("Open an archive to browse it, or compress files into a new one.", "section-description");
-        d.set_wrap(true);
-        text.append(&d);
-        header.append(&text);
-        let gear = widgets::icon_button("emblem-system-symbolic", "Settings (Ctrl+,)");
-        gear.connect_clicked(|_| crate::views::settings::show());
-        header.append(&gear);
-        body.append(&header);
-
         let banner = widgets::banner(
             "<b>7-Zip isn't installed.</b> Install the <tt>7zip</tt> package (<tt>sudo pacman -S 7zip</tt>), then reopen this window.",
             true,

@@ -241,3 +241,12 @@ pub fn tool_button(icon: &str, text: &str, tooltip: &str, priority: &str) -> gtk
     b.set_tooltip_text(Some(tooltip));
     b
 }
+
+/// A flat icon button for the top bar and dialog headers.
+pub fn bar_button(icon: &str, tooltip: &str) -> gtk::Button {
+    let b = gtk::Button::from_icon_name(icon);
+    b.add_css_class("bar-button");
+    b.set_tooltip_text(Some(tooltip));
+    b.set_valign(gtk::Align::Center);
+    b
+}

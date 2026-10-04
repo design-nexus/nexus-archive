@@ -3,7 +3,8 @@
 GTK4 (gtk4-rs, no libadwaita) archive manager wrapping the `7zz`/`7z` command line.
 
 - `src/sevenzip/parse.rs`: `7z l -slt` parser and folder tree. `job.rs`: command builders (`plan`), the runner (`run`, progress and cancel) and the tests, including real round trips that skip without 7-Zip.
-- `src/views/{home,browse,create,settings}.rs`: the three views and the settings dialog. `src/window.rs`: window, progress card, toasts, dialogs, file pickers.
+- `src/views/{home,browse,create,settings}.rs`: the three views and the settings page. `src/window.rs`: window, progress card, toasts, dialogs, file pickers.
+- The window is one flat, monospace surface split by hairlines: a top bar (back, `Archive / <view or archive name>` with the read-only tag, settings, close), the view, and a status bar (`F1 Shortcuts`; while browsing, the archive line and the counts). Browse's `title`, `subtitle`, `readonly` and `status` labels live in those bars (`window::refresh_bars`). Settings is a card over the window (`settings_dialog.rs`), rebuilt each time `views::settings::show` runs, listing its groups by widget name.
 - `src/theme.rs`, `style.css`: semantic colour tokens, 15 themes, Follow Omarchy (polled each second).
 - 7-Zip redraws progress with backspaces, not carriage returns; the runner splits on both.
 - Dev: `NARC_APP_ID=io.github.design_nexus.Dev ./target/debug/archive FILE` runs a separate instance.

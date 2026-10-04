@@ -2,7 +2,7 @@
 
 An archive manager for [Omarchy](https://omarchy.org), built on 7-Zip. Open an archive to
 browse it, extract all or part of it, or compress files into a new one. It takes its
-colours from your Omarchy theme and fits a half-screen tile.
+colors from your Omarchy theme and fits a half-screen tile.
 
 ## What it does
 
@@ -25,7 +25,7 @@ colours from your Omarchy theme and fits a half-screen tile.
 - **Passwords:** locked archives ask for the password when opened or extracted. Passwords
   are kept in memory only while the archive is open.
 - **Progress:** a card at the bottom shows the current file, percent, speed and time left,
-  with a Cancel button and *Open folder when done*. Cancelled or failed jobs leave no
+  with a Cancel button and *Open folder when done*. Canceled or failed jobs leave no
   half-written archive, and errors have a *Details* button with 7-Zip's full output.
 
 Passwords are passed to 7-Zip on its command line, so other users on the same machine could

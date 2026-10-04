@@ -6,6 +6,7 @@ mod fmt;
 mod paths;
 mod prefs;
 mod recent;
+mod settings_dialog;
 mod sevenzip;
 mod theme;
 mod views;

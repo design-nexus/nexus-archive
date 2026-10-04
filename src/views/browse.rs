@@ -54,9 +54,11 @@ struct State {
 
 pub struct Browse {
     pub root: gtk::Box,
-    title: gtk::Label,
-    subtitle: gtk::Label,
-    readonly: gtk::Label,
+    /// The archive's name, the line about it and the read-only tag: the window
+    /// shows these in its top bar and status bar.
+    pub title: gtk::Label,
+    pub subtitle: gtk::Label,
+    pub readonly: gtk::Label,
     crumbs: gtk::Box,
     search: gtk::SearchEntry,
     view: gtk::ListView,
@@ -67,7 +69,8 @@ pub struct Browse {
     scroll: gtk::ScrolledWindow,
     sort_buttons: Vec<(SortKey, gtk::Button)>,
     info_body: gtk::Box,
-    status: gtk::Label,
+    /// What's shown and selected, for the window's status bar.
+    pub status: gtk::Label,
     extract: gtk::Button,
     add: gtk::Button,
     test: gtk::Button,
@@ -207,30 +210,17 @@ impl Browse {
         let root = widgets::vbox(0);
         root.add_css_class("browse");
 
-        // ----- Header -----
-        let header = widgets::hbox(10);
+        // ----- Toolbar: what to do with the archive -----
+        let header = widgets::hbox(6);
         header.add_css_class("browse-header");
-        let back = widgets::icon_button("go-previous-symbolic", "Back to start");
-        back.connect_clicked(|_| window::show("home"));
-        header.append(&back);
-        let text = widgets::vbox(0);
-        text.set_hexpand(true);
-        let title_row = widgets::hbox(8);
-        let title = widgets::label("", "browse-title");
+        let title = widgets::label("", "crumb");
         title.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-        title_row.append(&title);
         let readonly = widgets::label("Read-only", "tag");
         readonly.set_valign(gtk::Align::Center);
         readonly.set_tooltip_text(Some("7-Zip can read this kind of archive but not change it. Extract it and make a new one to change its contents."));
         readonly.set_visible(false);
-        title_row.append(&readonly);
-        let subtitle = widgets::label("", "dim");
-        subtitle.add_css_class("mono");
-        subtitle.add_css_class("browse-subtitle");
+        let subtitle = widgets::label("", "status-readout");
         subtitle.set_ellipsize(gtk::pango::EllipsizeMode::End);
-        text.append(&title_row);
-        text.append(&subtitle);
-        header.append(&text);
 
         let extract = widgets::tool_button("document-save-symbolic", "Extract", "Extract (Ctrl+E)", "label-high");
         extract.add_css_class("suggested-action");
@@ -246,9 +236,6 @@ impl Browse {
         info_toggle.add_css_class("flat");
         info_toggle.set_tooltip_text(Some("Archive details"));
         info_toggle.set_valign(gtk::Align::Center);
-        let gear = widgets::icon_button("emblem-system-symbolic", "Settings (Ctrl+,)");
-        gear.connect_clicked(|_| crate::views::settings::show());
-
         let split = widgets::hbox(0);
         split.add_css_class("split-button");
         split.append(&extract);
@@ -257,8 +244,10 @@ impl Browse {
         header.append(&add);
         header.append(&test);
         header.append(&delete);
+        let spacer = widgets::hbox(0);
+        spacer.set_hexpand(true);
+        header.append(&spacer);
         header.append(&info_toggle);
-        header.append(&gear);
         root.append(&header);
 
         // ----- Info card -----
@@ -340,19 +329,9 @@ impl Browse {
         root.append(&scroll);
         root.append(&empty);
 
-        // ----- Status line -----
-        let status_bar = widgets::hbox(10);
-        status_bar.add_css_class("status-bar");
-        let status = widgets::label("", "dim");
-        status.add_css_class("mono");
-        status.set_hexpand(true);
+        // What's shown and selected; the window puts it in its status bar.
+        let status = widgets::label("", "status-readout");
         status.set_ellipsize(gtk::pango::EllipsizeMode::End);
-        status_bar.append(&status);
-        let hint = widgets::label("Right-click for more · ? for keys", "dim");
-        hint.add_css_class("status-hint");
-        hint.add_css_class("col-hide-narrow");
-        status_bar.append(&hint);
-        root.append(&status_bar);
 
         let actions = gio::SimpleActionGroup::new();
         root.insert_action_group("browse", Some(&actions));
