@@ -31,6 +31,8 @@ pub struct Prefs {
     pub last_dir: String,
     pub last_format: String,
     pub last_level: u8,
+    /// Open the result's folder when an extract or create finishes.
+    pub open_when_done: bool,
 }
 
 impl Default for Prefs {
@@ -46,6 +48,7 @@ impl Default for Prefs {
             last_dir: String::new(),
             last_format: "7z".into(),
             last_level: 5,
+            open_when_done: false,
         }
     }
 }

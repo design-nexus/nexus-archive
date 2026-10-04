@@ -32,6 +32,8 @@ pub struct Info {
     pub solid: bool,
     pub headers_encrypted: bool,
     pub comment: String,
+    /// Opened from the first of several volumes (`.7z.001`).
+    pub multivolume: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -59,6 +61,7 @@ pub fn parse_listing(text: &str) -> Listing {
         solid: h.get("Solid") == Some(&"+"),
         headers_encrypted: h.get("Headers Encrypted") == Some(&"+"),
         comment: h.get("Comment").unwrap_or(&"").to_string(),
+        multivolume: h.get("Multivolume") == Some(&"+") || h.get("Volumes").and_then(|v| v.parse::<u32>().ok()).is_some_and(|v| v > 1),
     };
     let mut entries = Vec::new();
     for block in body.split("\n\n") {
@@ -94,6 +97,24 @@ pub fn parse_listing(text: &str) -> Listing {
 }
 
 impl Listing {
+    /// 7-Zip can only add to and delete from these kinds, and never across volumes.
+    pub fn editable(&self) -> bool {
+        matches!(self.info.kind.as_str(), "7z" | "zip" | "tar" | "wim") && !self.info.multivolume
+    }
+
+    /// The file entries that extracting `selected` writes (everything when it's empty):
+    /// each selected path itself and anything below it.
+    pub fn targets(&self, selected: &[String]) -> Vec<&Entry> {
+        self.entries
+            .iter()
+            .filter(|e| !e.is_dir)
+            .filter(|e| {
+                selected.is_empty()
+                    || selected.iter().any(|s| e.path == *s || e.path.strip_prefix(s.as_str()).is_some_and(|r| r.starts_with('/')))
+            })
+            .collect()
+    }
+
     /// A gzip/xz/bzip2 stream that holds one tar: the real contents are one level down.
     pub fn is_tar_wrapper(&self) -> bool {
         self.entries.len() == 1 && !self.entries[0].is_dir && self.entries[0].path.to_lowercase().ends_with(".tar") && self.info.kind != "tar"
@@ -229,6 +250,30 @@ Packed Size = 7
         assert_eq!(l.entries.len(), 1);
         assert_eq!(l.entries[0].path, "files.tar");
         assert!(l.is_tar_wrapper());
+    }
+
+    #[test]
+    fn edit_support_by_kind() {
+        let mut l = parse_listing(SAMPLE);
+        assert!(l.editable());
+        l.info.multivolume = true;
+        assert!(!l.editable());
+        for (kind, ok) in [("Rar5", false), ("Iso", false), ("zip", true), ("gzip", false), ("tar", true)] {
+            l.info.kind = kind.into();
+            l.info.multivolume = false;
+            assert_eq!(l.editable(), ok, "{kind}");
+        }
+    }
+
+    #[test]
+    fn targets_cover_selected_folders() {
+        let l = parse_listing(SAMPLE);
+        assert_eq!(l.targets(&[]).len(), 3);
+        let t: Vec<_> = l.targets(&["docs".into()]).iter().map(|e| e.path.clone()).collect();
+        assert_eq!(t, vec!["docs/read me.txt"]);
+        // "doc" must not match "docs/…".
+        assert!(l.targets(&["doc".into()]).is_empty());
+        assert_eq!(l.targets(&["top.txt".into()]).len(), 1);
     }
 
     #[test]

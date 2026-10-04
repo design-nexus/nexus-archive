@@ -98,6 +98,8 @@ pub enum Op {
     Create(CreateOpts),
     Extract { archive: PathBuf, dest: PathBuf, paths: Vec<String>, password: Option<String>, overwrite: Overwrite },
     Add { archive: PathBuf, inputs: Vec<PathBuf>, password: Option<String> },
+    /// Put files back at their own paths inside the archive: `rel` is relative to `base`.
+    Update { archive: PathBuf, base: PathBuf, rel: Vec<String>, password: Option<String> },
     Delete { archive: PathBuf, paths: Vec<String>, password: Option<String> },
     Test { archive: PathBuf, password: Option<String> },
 }
@@ -108,6 +110,7 @@ impl Op {
             Op::Create(_) => "Creating archive",
             Op::Extract { .. } => "Extracting",
             Op::Add { .. } => "Adding files",
+            Op::Update { .. } => "Updating the archive",
             Op::Delete { .. } => "Deleting",
             Op::Test { .. } => "Testing",
         }
@@ -133,6 +136,8 @@ pub type Stage = Vec<String>;
 pub struct Plan {
     pub stages: Vec<Stage>,
     pub rename: Vec<(PathBuf, PathBuf)>,
+    /// The folder 7-Zip runs in, so relative paths keep their place in the archive.
+    pub cwd: Option<PathBuf>,
     /// Folders to create before the first stage.
     pub mkdir: Vec<PathBuf>,
     /// Temp files or folders to remove at the end, whatever happened.
@@ -186,6 +191,16 @@ pub fn plan(op: &Op) -> Plan {
             a.push(archive.display().to_string());
             a.extend(inputs.iter().map(|i| i.display().to_string()));
             p.stages.push(a);
+        }
+        Op::Update { archive, base, rel, password } => {
+            let mut a = vec![s("a")];
+            a.extend(QUIET.map(s));
+            a.extend(pw(password));
+            a.push(s("--"));
+            a.push(archive.display().to_string());
+            a.extend(rel.iter().cloned());
+            p.stages.push(a);
+            p.cwd = Some(base.clone());
         }
         Op::Create(o) => plan_create(o, &mut p),
     }
@@ -315,20 +330,25 @@ pub fn parse_progress(line: &str) -> Option<(u8, String)> {
     Some((percent.min(100), current.trim().to_string()))
 }
 
-/// Turn 7-Zip's error text into something a person can act on.
+/// Sort 7-Zip's error output: wrong passwords get their own outcome, and anything else
+/// keeps the whole text so the UI can show it under "Details".
 pub fn classify_failure(text: &str) -> Outcome {
     let lower = text.to_lowercase();
     if lower.contains("wrong password") || lower.contains("data error in encrypted file") {
         return Outcome::WrongPassword;
     }
-    let line = text
-        .lines()
+    let text = text.trim();
+    Outcome::Failed(if text.is_empty() { "7-Zip reported an error".to_string() } else { text.to_string() })
+}
+
+/// The one line of 7-Zip's output worth showing in a toast.
+pub fn summary(text: &str) -> String {
+    text.lines()
         .map(str::trim)
         .find(|l| l.starts_with("ERROR:") || l.contains("Can not open") || l.contains("Cannot open") || l.contains("No space"))
         .map(|l| l.trim_start_matches("ERROR:").trim().to_string())
         .or_else(|| text.lines().map(str::trim).rfind(|l| !l.is_empty()).map(str::to_string))
-        .unwrap_or_else(|| "7-Zip reported an error".to_string());
-    Outcome::Failed(line)
+        .unwrap_or_else(|| "7-Zip reported an error".to_string())
 }
 
 /// Run an operation on a worker thread. Events arrive on the returned channel;
@@ -344,6 +364,12 @@ pub fn run(binary: &'static str, op: Op) -> (async_channel::Receiver<Event>, Can
     (rx, cancel)
 }
 
+/// Run an operation on this thread, without progress. For small, quick jobs only.
+pub fn run_blocking(binary: &str, op: &Op) -> Outcome {
+    let (tx, _rx) = async_channel::unbounded();
+    execute(binary, op, &Cancel::default(), &tx)
+}
+
 fn execute(binary: &str, op: &Op, cancel: &Cancel, tx: &async_channel::Sender<Event>) -> Outcome {
     let plan = plan(op);
     let total = plan.stages.len().max(1);
@@ -354,7 +380,7 @@ fn execute(binary: &str, op: &Op, cancel: &Cancel, tx: &async_channel::Sender<Ev
         }
     }
     for (i, stage) in plan.stages.iter().enumerate() {
-        match run_stage(binary, stage, cancel, |pr| {
+        match run_stage(binary, stage, plan.cwd.as_deref(), cancel, |pr| {
             let percent = ((i * 100 + pr.percent as usize) / total) as u8;
             let _ = tx.send_blocking(Event::Progress(Progress { percent, current: pr.current }));
         }) {
@@ -385,11 +411,16 @@ fn execute(binary: &str, op: &Op, cancel: &Cancel, tx: &async_channel::Sender<Ev
     outcome
 }
 
-fn run_stage(binary: &str, args: &[String], cancel: &Cancel, mut on_progress: impl FnMut(Progress)) -> Outcome {
+fn run_stage(binary: &str, args: &[String], cwd: Option<&Path>, cancel: &Cancel, mut on_progress: impl FnMut(Progress)) -> Outcome {
     if cancel.is_cancelled() {
         return Outcome::Cancelled;
     }
-    let mut child = match Command::new(binary).args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
+    let mut command = Command::new(binary);
+    command.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    if let Some(dir) = cwd {
+        command.current_dir(dir);
+    }
+    let mut child = match command.spawn() {
         Ok(c) => c,
         Err(e) => return Outcome::Failed(format!("Couldn't start {binary}: {e}")),
     };
@@ -502,6 +533,27 @@ mod tests {
     }
 
     #[test]
+    fn update_puts_a_file_back_at_its_path() {
+        let Some(bin) = sevenzip::binary() else { return };
+        let dir = tmp("upd");
+        std::fs::create_dir_all(dir.join("src/inner")).unwrap();
+        std::fs::write(dir.join("src/inner/f.txt"), "old").unwrap();
+        let output = dir.join("u.7z");
+        let opts = CreateOpts { output: output.clone(), inputs: vec![dir.join("src")], ..create(Format::SevenZ) };
+        assert_eq!(finish(Op::Create(opts)), Outcome::Ok);
+        let work = dir.join("work");
+        std::fs::create_dir_all(work.join("src/inner")).unwrap();
+        std::fs::write(work.join("src/inner/f.txt"), "new!").unwrap();
+        let up = Op::Update { archive: output.clone(), base: work, rel: vec!["src/inner/f.txt".into()], password: None };
+        assert_eq!(finish(up), Outcome::Ok);
+        let l = sevenzip::list(bin, &output, None).unwrap();
+        let f: Vec<_> = l.entries.iter().filter(|e| !e.is_dir).collect();
+        assert_eq!(f.len(), 1);
+        assert_eq!((f[0].path.as_str(), f[0].size), ("src/inner/f.txt", 4));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn password_round_trip_and_wrong_password() {
         let Some(bin) = sevenzip::binary() else { return };
         let dir = tmp("pw");
@@ -548,7 +600,9 @@ mod tests {
     #[test]
     fn classifies_failures() {
         assert_eq!(classify_failure("ERROR: Wrong password : a.txt"), Outcome::WrongPassword);
-        assert_eq!(classify_failure("x\nERROR: No more files\n"), Outcome::Failed("No more files".into()));
+        assert_eq!(classify_failure("x\nERROR: No more files\n"), Outcome::Failed("x\nERROR: No more files".into()));
+        assert_eq!(summary("x\nERROR: No more files\n"), "No more files");
+        assert_eq!(summary("Scanning\nsomething broke"), "something broke");
     }
 
     #[test]

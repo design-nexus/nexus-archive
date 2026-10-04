@@ -231,14 +231,16 @@ pub fn icon_button(icon: &str, tooltip: &str) -> gtk::Button {
     b
 }
 
-/// A toolbar button: icon plus a label that hides in narrow windows.
-pub fn tool_button(icon: &str, text: &str, tooltip: &str) -> gtk::Button {
+/// A toolbar button: icon plus a label that hides when the window gets narrower
+/// than its `priority` class allows (`label-low`, `label-mid`, `label-high`).
+pub fn tool_button(icon: &str, text: &str, tooltip: &str, priority: &str) -> gtk::Button {
     let b = gtk::Button::new();
     b.add_css_class("tool-button");
     let c = hbox(8);
     c.append(&gtk::Image::from_icon_name(icon));
     let l = gtk::Label::new(Some(text));
     l.add_css_class("tool-label");
+    l.add_css_class(priority);
     c.append(&l);
     b.set_child(Some(&c));
     b.set_tooltip_text(Some(tooltip));

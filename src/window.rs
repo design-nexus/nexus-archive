@@ -11,11 +11,23 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Instant;
 
-/// Under this width the toolbar drops its labels and tables shed columns.
+/// Under this width tables shed columns and pages use the narrow padding.
 const NARROW_WIDTH: i32 = 860;
+
+/// Classes that hide below a window width: toolbar labels go one at a time, least
+/// important first, so a half-screen tile still shows "Extract" and "Add".
+const SHED: [(&str, i32); 6] = [
+    ("label-low", 1000),
+    ("col-modified", NARROW_WIDTH),
+    ("col-packed", NARROW_WIDTH),
+    ("col-hide-narrow", NARROW_WIDTH),
+    ("label-mid", 760),
+    ("label-high", 640),
+];
 
 struct Progress {
     root: gtk::Box,
+    open_when_done: gtk::CheckButton,
     title: gtk::Label,
     current: gtk::Label,
     readout: gtk::Label,
@@ -35,7 +47,7 @@ struct Ui {
 
 thread_local! {
     static UI: RefCell<Option<Rc<Ui>>> = const { RefCell::new(None) };
-    static NARROW: Cell<bool> = const { Cell::new(false) };
+    static WIDTH: Cell<i32> = const { Cell::new(0) };
     static TOAST: RefCell<Option<gtk::Box>> = const { RefCell::new(None) };
 }
 
@@ -97,29 +109,32 @@ pub fn current() -> String {
     ui().and_then(|u| u.stack.visible_child_name()).map(|n| n.to_string()).unwrap_or_default()
 }
 
-pub fn narrow() -> bool {
-    NARROW.with(Cell::get)
-}
-
-const SHED: [&str; 4] = ["col-modified", "col-packed", "col-hide-narrow", "tool-label"];
-
-fn shed_in(w: &gtk::Widget, hide: bool) {
-    if SHED.iter().any(|c| w.has_css_class(c)) {
-        w.set_visible(!hide);
+fn shed_in(w: &gtk::Widget, width: i32) {
+    for (class, below) in SHED {
+        if w.has_css_class(class) {
+            w.set_visible(width >= below);
+        }
     }
     let mut child = w.first_child();
     while let Some(c) = child {
-        shed_in(&c, hide);
+        shed_in(&c, width);
         child = c.next_sibling();
     }
 }
 
-/// Hide the columns and labels that don't fit a narrow window. Views call this after
-/// they build rows, so new rows match the current width.
+/// Hide the columns and labels that don't fit the window. Views call this after they
+/// build rows, so new rows match the current width.
 pub fn apply_narrow() {
     if let Some(ui) = ui() {
-        shed_in(ui.stack.upcast_ref(), narrow());
+        shed_in(ui.stack.upcast_ref(), WIDTH.with(Cell::get));
     }
+}
+
+/// Whether a widget with this class should show at the current width (for rows made
+/// while the window is already narrow).
+pub fn fits(class: &str) -> bool {
+    let width = WIDTH.with(Cell::get);
+    SHED.iter().find(|(c, _)| *c == class).is_none_or(|(_, below)| width == 0 || width >= *below)
 }
 
 fn build(app: &gtk::Application) {
@@ -150,17 +165,30 @@ fn build(app: &gtk::Application) {
 
     // The window has no resize signal worth trusting, so a tick callback watches the width.
     window.add_tick_callback(|w, _| {
-        let narrow = w.width() < NARROW_WIDTH;
-        if narrow != NARROW.with(Cell::get) {
-            NARROW.with(|n| n.set(narrow));
+        let width = w.width();
+        let tier = |x: i32| SHED.iter().filter(|(_, below)| x < *below).count();
+        let old = WIDTH.with(Cell::get);
+        if old == 0 || tier(old) != tier(width) {
+            WIDTH.with(|c| c.set(width));
+            let narrow = width < NARROW_WIDTH;
             if narrow {
                 w.add_css_class("narrow");
             } else {
                 w.remove_css_class("narrow");
             }
             apply_narrow();
+        } else {
+            WIDTH.with(|c| c.set(width));
         }
         glib::ControlFlow::Continue
+    });
+    // Coming back to the window is when an edited working copy can be offered back.
+    window.connect_is_active_notify(|w| {
+        if w.is_active()
+            && let Some(ui) = ui()
+        {
+            ui.browse.check_opened();
+        }
     });
 
     UI.with(|u| {
@@ -225,7 +253,7 @@ fn install_keys(window: &gtk::ApplicationWindow) {
         }
     });
     add("<Control>comma", || crate::views::settings::show());
-    add("F1", || crate::views::settings::show());
+    add("F1", || crate::views::settings::show_help());
     window.add_controller(controller);
 
     // Keys that must not steal typing from entries use the bubble phase.
@@ -249,6 +277,18 @@ fn install_keys(window: &gtk::ApplicationWindow) {
             }
             gtk::gdk::Key::a if ctrl && view == "browse" => {
                 ui.browse.select_all();
+                glib::Propagation::Stop
+            }
+            gtk::gdk::Key::Menu if view == "browse" => {
+                ui.browse.menu_from_keyboard();
+                glib::Propagation::Stop
+            }
+            gtk::gdk::Key::F10 if view == "browse" && state.contains(gtk::gdk::ModifierType::SHIFT_MASK) => {
+                ui.browse.menu_from_keyboard();
+                glib::Propagation::Stop
+            }
+            gtk::gdk::Key::question => {
+                crate::views::settings::show_help();
                 glib::Propagation::Stop
             }
             gtk::gdk::Key::Delete if view == "browse" => {
@@ -296,20 +336,44 @@ fn build_progress() -> Progress {
     bar.add_css_class("job-bar");
     root.append(&bar);
 
+    let bottom = widgets::hbox(12);
     let current = widgets::label("", "mono");
     current.add_css_class("dim");
     current.add_css_class("progress-file");
+    current.set_hexpand(true);
     current.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-    root.append(&current);
-    Progress { root, title, current, readout, bar }
+    bottom.append(&current);
+    let open_when_done = gtk::CheckButton::with_label("Open folder when done");
+    open_when_done.add_css_class("dim");
+    open_when_done.set_active(prefs::get().open_when_done);
+    open_when_done.connect_toggled(|c| {
+        let on = c.is_active();
+        prefs::update(|p| p.open_when_done = on);
+    });
+    bottom.append(&open_when_done);
+    root.append(&bottom);
+    Progress { root, open_when_done, title, current, readout, bar }
 }
 
 pub fn busy() -> bool {
     ui().is_some_and(|u| u.cancel.borrow().is_some())
 }
 
+/// What the progress card needs to know beyond the operation itself.
+#[derive(Default)]
+pub struct JobInfo {
+    /// Bytes the job reads or writes, for speed and time left (0 when unknown).
+    pub total: u64,
+    /// The folder the result lands in, for "Open folder when done".
+    pub folder: Option<PathBuf>,
+}
+
+fn clock(secs: u64) -> String {
+    format!("{}:{:02}", secs / 60, secs % 60)
+}
+
 /// Run a 7-Zip job with the progress card showing. `done` gets the outcome on the UI thread.
-pub fn run_job(op: Op, done: impl FnOnce(Outcome) + 'static) {
+pub fn run_job(op: Op, info: JobInfo, done: impl FnOnce(Outcome) + 'static) {
     let Some(ui) = ui() else { return };
     let Some(binary) = sevenzip::binary() else {
         toast("7-Zip isn't installed. Install the 7zip package and try again.");
@@ -325,6 +389,7 @@ pub fn run_job(op: Op, done: impl FnOnce(Outcome) + 'static) {
     p.readout.set_text("");
     p.bar.set_fraction(0.0);
     p.bar.pulse();
+    p.open_when_done.set_visible(info.folder.is_some());
     p.root.set_visible(true);
     let (rx, cancel) = job::run(binary, op);
     *ui.cancel.borrow_mut() = Some(cancel);
@@ -336,8 +401,20 @@ pub fn run_job(op: Op, done: impl FnOnce(Outcome) + 'static) {
                 Event::Progress(pr) => {
                     let p = &ui.progress;
                     p.bar.set_fraction(f64::from(pr.percent) / 100.0);
-                    let secs = started.elapsed().as_secs();
-                    p.readout.set_text(&format!("{}% · {}:{:02}", pr.percent, secs / 60, secs % 60));
+                    let elapsed = started.elapsed().as_secs_f64();
+                    let mut parts = vec![format!("{}%", pr.percent)];
+                    // Speed and time left only once there's enough to go on.
+                    if pr.percent >= 2 && elapsed >= 1.0 {
+                        if info.total > 0 {
+                            let rate = info.total as f64 * f64::from(pr.percent) / 100.0 / elapsed;
+                            parts.push(format!("{}/s", crate::fmt::size(rate as u64)));
+                        }
+                        let left = elapsed * f64::from(100 - pr.percent.min(100)) / f64::from(pr.percent);
+                        parts.push(format!("{} left", clock(left.round() as u64)));
+                    } else {
+                        parts.push(clock(elapsed as u64));
+                    }
+                    p.readout.set_text(&parts.join(" · "));
                     if !pr.current.is_empty() {
                         p.current.set_text(&pr.current);
                     }
@@ -345,6 +422,12 @@ pub fn run_job(op: Op, done: impl FnOnce(Outcome) + 'static) {
                 Event::Done(outcome) => {
                     ui.progress.root.set_visible(false);
                     *ui.cancel.borrow_mut() = None;
+                    if outcome == Outcome::Ok
+                        && prefs::get().open_when_done
+                        && let Some(folder) = &info.folder
+                    {
+                        crate::cmd::spawn(&["xdg-open", &folder.to_string_lossy()]);
+                    }
                     if let Some(done) = done.take() {
                         done(outcome);
                     }
@@ -361,8 +444,35 @@ pub fn report_failure(outcome: &Outcome) {
         Outcome::Ok => {}
         Outcome::Cancelled => toast("Cancelled."),
         Outcome::WrongPassword => toast("That password didn't work."),
-        Outcome::Failed(m) => toast(m),
+        Outcome::Failed(m) => {
+            let short = job::summary(m);
+            if short.trim() == m.trim() {
+                toast(&short);
+            } else {
+                let full = m.clone();
+                toast_action(&short, "Details", move || show_details("7-Zip couldn't finish", &full));
+            }
+        }
     }
+}
+
+/// A dialog with 7-Zip's full output, scrollable and selectable.
+pub fn show_details(title: &str, text: &str) {
+    let (dialog, card) = widgets::dialog(title, 560);
+    let view = gtk::TextView::new();
+    view.set_editable(false);
+    view.set_monospace(true);
+    view.set_wrap_mode(gtk::WrapMode::WordChar);
+    view.add_css_class("code-block");
+    view.buffer().set_text(text);
+    let scroll = gtk::ScrolledWindow::builder().child(&view).min_content_height(220).max_content_height(420).propagate_natural_height(true).build();
+    card.append(&scroll);
+    let close = gtk::Button::with_label("Close");
+    close.set_halign(gtk::Align::End);
+    let d = dialog.clone();
+    close.connect_clicked(move |_| d.close());
+    card.append(&close);
+    dialog.present();
 }
 
 // ---------- Toasts ----------
@@ -515,9 +625,10 @@ pub fn confirm(title: &str, desc: &str, action: &str, danger: bool, on_ok: impl 
 }
 
 /// Ask what to do about files that already exist.
-pub fn ask_overwrite(dest: &Path, on_choice: impl Fn(job::Overwrite) + 'static) {
+pub fn ask_overwrite(dest: &Path, clashes: usize, on_choice: impl Fn(job::Overwrite) + 'static) {
     let (dialog, card) = widgets::dialog("Files already exist", 460);
-    let d = widgets::label(&format!("{} already has files in it. What should happen to files with the same name?", paths::pretty(dest)), "dim");
+    let what = if clashes == 1 { "One file is".to_string() } else { format!("{} files are", crate::fmt::thousands(clashes)) };
+    let d = widgets::label(&format!("{what} already in {}. What should happen to them?", paths::pretty(dest)), "dim");
     d.set_wrap(true);
     card.append(&d);
     let on_choice = Rc::new(on_choice);

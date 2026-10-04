@@ -7,20 +7,26 @@ colours from your Omarchy theme and fits a half-screen tile.
 ## What it does
 
 - **Browse:** folders with a breadcrumb path, sortable columns (name, size, packed size,
-  modified), and a search that looks through the whole archive. Double-click a file to open
-  it from a working copy; the archive itself isn't touched.
+  modified), and a search that looks through the whole archive. Archives with tens of
+  thousands of files stay quick. Right-click (or <kbd>Menu</kbd>) for Open, Extract, Copy
+  path and Delete, and drag files out to a file manager.
+- **Open files inside:** double-click a file to open it from a working copy. If you change
+  it, coming back to the window offers to put the new version back into the archive.
 - **Extract:** everything or just the selection, into a new folder named after the archive
-  or straight into a folder you pick. It asks what to do about files that already exist,
+  or straight into a folder you pick. It asks only when files would really be overwritten,
   or follows the choice you made in settings.
 - **Create:** 7z, zip, tar.gz or tar.xz, with five compression levels. 7z and zip can be
   password-protected (7z can hide file names too), split into parts, and 7z can be solid.
+  The originals can go to the trash afterwards, once the new archive has passed a test.
 - **Change an archive:** add files by dragging them onto it, delete entries from it, and
-  test it for errors. `.tar.gz` and `.tar.xz` open as the tar inside and can't be changed.
+  test it for errors. Formats 7-Zip can't write (rar, iso, `.tar.gz`, split volumes…) are
+  marked *Read-only* and offer only extracting.
 - **Formats:** anything the installed 7-Zip can read, including rar, iso, cab, deb and rpm.
 - **Passwords:** locked archives ask for the password when opened or extracted. Passwords
   are kept in memory only while the archive is open.
-- **Progress:** a card at the bottom shows the current file, percent and elapsed time,
-  with a Cancel button. Cancelled or failed jobs leave no half-written archive.
+- **Progress:** a card at the bottom shows the current file, percent, speed and time left,
+  with a Cancel button and *Open folder when done*. Cancelled or failed jobs leave no
+  half-written archive, and errors have a *Details* button with 7-Zip's full output.
 
 Passwords are passed to 7-Zip on its command line, so other users on the same machine could
 see them in the process list while a job runs.
@@ -59,8 +65,10 @@ archive --create FILE…  # compress these files into a new archive
 | <kbd>Enter</kbd> | Open the folder or file |
 | <kbd>Backspace</kbd> | Up one folder |
 | <kbd>Delete</kbd> | Delete from the archive |
+| <kbd>Menu</kbd> or <kbd>Shift</kbd>+<kbd>F10</kbd> | More actions for the selection |
 | <kbd>Esc</kbd> | Clear the search, unselect, or go back |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Settings |
+| <kbd>?</kbd> or <kbd>F1</kbd> | Keyboard shortcuts |
 | <kbd>Ctrl</kbd>+<kbd>Q</kbd> | Close |
 
 ## Settings

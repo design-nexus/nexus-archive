@@ -44,7 +44,7 @@ pub fn list(binary: &str, archive: &Path, password: Option<&str>) -> Result<List
         return Ok(parse::parse_listing(&text));
     }
     match job::classify_failure(&err) {
-        job::Outcome::Failed(m) => Err(ListError::Failed(m)),
+        job::Outcome::Failed(m) => Err(ListError::Failed(job::summary(&m))),
         _ => Err(ListError::NeedsPassword),
     }
 }

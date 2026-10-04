@@ -4,6 +4,51 @@ use crate::{paths, prefs, theme, widgets, window};
 use gtk::glib;
 use gtk::prelude::*;
 
+pub const SHORTCUTS: &[(&[&str], &str)] = &[
+    (&["Ctrl", "O"], "Open an archive"),
+    (&["Ctrl", "N"], "New archive"),
+    (&["Ctrl", "E"], "Extract the selection, or everything"),
+    (&["Ctrl", "F"], "Search the archive"),
+    (&["Ctrl", "A"], "Select all"),
+    (&["Enter"], "Open the folder or file"),
+    (&["Backspace"], "Up one folder"),
+    (&["Delete"], "Delete from the archive"),
+    (&["Menu"], "More actions for the selection (or right-click)"),
+    (&["Esc"], "Clear the search, unselect, or go back"),
+    (&["Ctrl", ","], "Settings"),
+    (&["?"], "This list"),
+    (&["Ctrl", "Q"], "Close"),
+];
+
+/// The keyboard shortcuts on their own, for `?` and F1.
+pub fn show_help() {
+    let (dialog, card) = widgets::dialog("Keyboard shortcuts", 460);
+    let list = widgets::vbox(0);
+    list.add_css_class("help-list");
+    for (keys, what) in SHORTCUTS {
+        let row = widgets::hbox(12);
+        row.add_css_class("help-row");
+        let l = widgets::label(what, "");
+        l.set_hexpand(true);
+        l.set_wrap(true);
+        row.append(&l);
+        row.append(&widgets::key_caps(keys));
+        list.append(&row);
+    }
+    card.append(&list);
+    let tip = widgets::label("Drop files on the window to compress them, or onto an open archive to add them.", "dim");
+    tip.set_wrap(true);
+    card.append(&tip);
+    let close = gtk::Button::with_label("Close");
+    close.set_halign(gtk::Align::End);
+    close.add_css_class("suggested-action");
+    let d = dialog.clone();
+    close.connect_clicked(move |_| d.close());
+    card.append(&close);
+    dialog.present();
+    close.grab_focus();
+}
+
 pub fn show() {
     let (dialog, card) = widgets::dialog("Settings", 560);
     dialog.set_default_height(640);
@@ -142,18 +187,7 @@ pub fn show() {
 
     // ----- Keyboard -----
     let g = group("Keyboard");
-    for (keys, what) in [
-        (&["Ctrl", "O"][..], "Open an archive"),
-        (&["Ctrl", "N"][..], "New archive"),
-        (&["Ctrl", "E"][..], "Extract the selection, or everything"),
-        (&["Ctrl", "F"][..], "Search the archive"),
-        (&["Ctrl", "A"][..], "Select all"),
-        (&["Enter"][..], "Open the folder or file"),
-        (&["Backspace"][..], "Up one folder"),
-        (&["Delete"][..], "Delete from the archive"),
-        (&["Esc"][..], "Clear the search, unselect, or go back"),
-        (&["Ctrl", "Q"][..], "Close"),
-    ] {
+    for (keys, what) in SHORTCUTS {
         g.append(&widgets::row(what, "", Some(widgets::key_caps(keys).upcast_ref())));
     }
 

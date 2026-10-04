@@ -1,6 +1,7 @@
 //! Making a new archive: pick files, then format, level, name and options.
 
 use crate::sevenzip::job::{CreateOpts, Format, Op, Outcome};
+use crate::window::JobInfo;
 use crate::{cmd, fmt, paths, prefs, widgets, window};
 use gtk::prelude::*;
 use std::cell::RefCell;
@@ -21,6 +22,10 @@ struct State {
     solid: bool,
     split_mb: u32,
     threads: u32,
+    /// Move the inputs to the trash once the archive is made and tested.
+    trash_originals: bool,
+    /// Total size of the inputs, once measured.
+    measured: u64,
 }
 
 pub struct Create {
@@ -145,6 +150,12 @@ impl Create {
         let (split_row, split_dd) = widgets::choice_row("Split into parts", "Make several smaller files.", split_opts.clone(), "0", |_| {});
         let thread_opts = widgets::opts(&[("0", "Automatic"), ("1", "1"), ("2", "2"), ("4", "4"), ("8", "8")]);
         let (threads_row, threads_dd) = widgets::choice_row("Processor threads", "Fewer threads leave the computer responsive.", thread_opts.clone(), "0", |_| {});
+        let (trash_row, trash_switch) = widgets::switch_row(
+            "Move the originals to the trash",
+            "Only after the new archive has been made and tested. They can be restored from the trash.",
+            false,
+            |_| {},
+        );
 
         let state = State {
             inputs: Vec::new(),
@@ -159,6 +170,8 @@ impl Create {
             solid: true,
             split_mb: 0,
             threads: 0,
+            trash_originals: false,
+            measured: 0,
         };
 
         let summary = widgets::label("", "mono");
@@ -233,7 +246,7 @@ impl Create {
         rev.set_transition_type(gtk::RevealerTransitionType::SlideDown);
         let inner = widgets::vbox(6);
         inner.set_margin_top(6);
-        for r in [&password_row, &names_row, &solid_row, &split_row, &threads_row] {
+        for r in [&password_row, &names_row, &solid_row, &split_row, &threads_row, &trash_row] {
             inner.append(r);
         }
         rev.set_child(Some(&inner));
@@ -303,6 +316,11 @@ impl Create {
             if let Some((id, _)) = split_opts.get(d.selected() as usize) {
                 t.state.borrow_mut().split_mb = id.parse().unwrap_or(0);
             }
+        });
+        let t = this.clone();
+        trash_switch.connect_active_notify(move |s| {
+            t.state.borrow_mut().trash_originals = s.is_active();
+            t.update_summary();
         });
         let t = this.clone();
         threads_dd.connect_selected_notify(move |d| {
@@ -392,6 +410,7 @@ impl Create {
             move || inputs.iter().map(|p| dir_size(p)).sum::<u64>(),
             move |total| {
                 if this.state.borrow().inputs.len() == n {
+                    this.state.borrow_mut().measured = total;
                     this.files_summary.set_text(&format!("{} · {}", fmt::count(n, "item", "items"), fmt::size(total)));
                 }
             },
@@ -455,15 +474,38 @@ impl Create {
 
     fn update_summary(&self) {
         let s = self.state.borrow();
-        let ready = !s.inputs.is_empty() && !s.name.trim().is_empty();
-        self.create.set_sensitive(ready);
-        let text = if s.inputs.is_empty() {
-            "Add at least one file or folder.".to_string()
+        let output = output_path(&s);
+        let problem = name_problem(&s.name).map(str::to_string).or_else(|| {
+            (s.split_mb > 0 && split_parts_exist(&output)).then(|| "Parts with this name already exist. Pick another name.".to_string())
+        });
+        if problem.is_some() && !s.name.is_empty() {
+            self.name.add_css_class("error");
         } else {
-            let lock = if s.format.can_encrypt() && !s.password.is_empty() { " · password" } else { "" };
-            format!("{}{lock}", paths::pretty(&output_path(&s)))
+            self.name.remove_css_class("error");
+        }
+        let ready = !s.inputs.is_empty() && problem.is_none();
+        self.create.set_sensitive(ready);
+        let (text, bad) = if s.inputs.is_empty() {
+            ("Add at least one file or folder.".to_string(), false)
+        } else if let Some(p) = problem {
+            (p, true)
+        } else {
+            let mut extra = String::new();
+            if s.format.can_encrypt() && !s.password.is_empty() {
+                extra.push_str(" · password");
+            }
+            if s.trash_originals {
+                extra.push_str(" · originals to trash");
+            }
+            (format!("{}{extra}", short_path(&output)), false)
         };
         self.summary.set_text(&text);
+        self.summary.set_tooltip_text(Some(&paths::pretty(&output)));
+        if bad {
+            self.summary.add_css_class("danger-text");
+        } else {
+            self.summary.remove_css_class("danger-text");
+        }
     }
 
     fn run(self: &Rc<Self>) {
@@ -489,12 +531,19 @@ impl Create {
                 let (opts, output) = (opts.clone(), output.clone());
                 let this = this.clone();
                 let split = opts.split_mb.is_some();
-                let original: u64 = opts.inputs.iter().map(|p| dir_size(p)).sum();
-                window::run_job(Op::Create(opts), move |out| match out {
+                let (original, trash) = {
+                    let s = this.state.borrow();
+                    (s.measured, s.trash_originals)
+                };
+                let inputs = opts.inputs.clone();
+                let password = opts.password.clone();
+                let info = JobInfo { total: original, folder: output.parent().map(Path::to_path_buf) };
+                window::run_job(Op::Create(opts), info, move |out| match out {
                     Outcome::Ok => {
                         let size = std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0);
                         let ratio = if original > 0 && !split { format!(" ({:.0}% of the original)", size as f64 / original as f64 * 100.0) } else { String::new() };
                         let o = output.clone();
+                        let o2 = output.clone();
                         window::toast_action(
                             &format!("Created {}{}", output.file_name().unwrap_or_default().to_string_lossy(), if split { String::new() } else { format!(" · {}{ratio}", fmt::size(size)) }),
                             "Show in folder",
@@ -509,10 +558,18 @@ impl Create {
                         this.rebuild_files();
                         this.files_summary.set_text("");
                         this.sync();
-                        if split {
-                            window::show("home");
+                        let next = move || {
+                            if split {
+                                window::show("home");
+                            } else {
+                                window::open_archive(output);
+                            }
+                        };
+                        if trash {
+                            let first = if split { first_volume(&o2) } else { o2.clone() };
+                            trash_after_test(first, inputs.clone(), password.clone(), next);
                         } else {
-                            window::open_archive(output);
+                            next();
                         }
                     }
                     other => window::report_failure(&other),
@@ -538,5 +595,85 @@ fn default_name(inputs: &[PathBuf]) -> String {
         [] => String::new(),
         [one] => one.file_stem().or_else(|| one.file_name()).unwrap_or_default().to_string_lossy().to_string(),
         _ => "Archive".to_string(),
+    }
+}
+
+/// Test the new archive, and only if it's sound move the originals to the trash.
+fn trash_after_test(archive: PathBuf, inputs: Vec<PathBuf>, password: Option<String>, then: impl FnOnce() + 'static) {
+    window::run_job(Op::Test { archive, password }, JobInfo::default(), move |out| {
+        if out != Outcome::Ok {
+            window::report_failure(&out);
+            window::toast("The new archive didn't pass its test, so the originals were kept.");
+            return;
+        }
+        let mut failed = 0;
+        for p in &inputs {
+            if gtk::gio::File::for_path(p).trash(gtk::gio::Cancellable::NONE).is_err() {
+                failed += 1;
+            }
+        }
+        if failed == 0 {
+            window::toast(&format!("Moved {} to the trash.", fmt::count(inputs.len(), "original", "originals")));
+        } else {
+            window::toast(&format!("{} couldn't be moved to the trash and were kept.", fmt::count(failed, "original", "originals")));
+        }
+        then();
+    });
+}
+
+/// `x.7z` split into parts starts at `x.7z.001`.
+fn first_volume(output: &Path) -> PathBuf {
+    let name = output.file_name().unwrap_or_default().to_string_lossy();
+    output.with_file_name(format!("{name}.001"))
+}
+
+fn split_parts_exist(output: &Path) -> bool {
+    first_volume(output).exists()
+}
+
+/// Why this archive name can't be used, if it can't.
+fn name_problem(name: &str) -> Option<&'static str> {
+    let n = name.trim();
+    if n.is_empty() {
+        Some("Give the archive a name.")
+    } else if n.contains('/') {
+        Some("Names can't contain “/”.")
+    } else if n == "." || n == ".." {
+        Some("Pick a real name.")
+    } else if n.len() > 240 {
+        Some("That name is too long.")
+    } else {
+        None
+    }
+}
+
+/// `~/Documents/work/2026/report.7z` → `~/…/2026/report.7z`.
+fn short_path(path: &Path) -> String {
+    let full = paths::pretty(path);
+    let parts: Vec<&str> = full.split('/').collect();
+    if parts.len() <= 4 {
+        return full;
+    }
+    format!("{}/…/{}", parts[0], parts[parts.len() - 2..].join("/"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validates_names() {
+        assert!(name_problem("").is_some());
+        assert!(name_problem("   ").is_some());
+        assert!(name_problem("a/b").is_some());
+        assert!(name_problem("..").is_some());
+        assert!(name_problem("photos 2026").is_none());
+    }
+
+    #[test]
+    fn shortens_long_paths() {
+        assert_eq!(short_path(Path::new("/a/b/c/d/e/f.7z")), "/…/e/f.7z");
+        assert_eq!(short_path(Path::new("/a/b.7z")), "/a/b.7z");
+        assert_eq!(first_volume(Path::new("/x/y.7z")), PathBuf::from("/x/y.7z.001"));
     }
 }

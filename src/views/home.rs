@@ -108,8 +108,17 @@ impl Home {
 
         // ----- Recent -----
         let recents_group = widgets::vbox(0);
+        let head = widgets::hbox(8);
         let t = widgets::label("RECENT", "group-title");
-        recents_group.append(&t);
+        t.set_hexpand(true);
+        head.append(&t);
+        let clear = gtk::Button::with_label("Clear list");
+        clear.add_css_class("flat");
+        clear.add_css_class("small-button");
+        clear.set_valign(gtk::Align::End);
+        clear.set_margin_bottom(4);
+        head.append(&clear);
+        recents_group.append(&head);
         let recents = widgets::vbox(6);
         recents_group.append(&recents);
         body.append(&recents_group);
@@ -122,6 +131,14 @@ impl Home {
             .build();
         widgets::center_clamp(&root, &body, 920);
         let home = Rc::new(Home { root, recents, recents_group, banner });
+        let h = home.clone();
+        clear.connect_clicked(move |_| {
+            for p in recent::list() {
+                recent::forget(&p);
+            }
+            h.refresh();
+            window::toast("Cleared the recent list. The archives themselves are untouched.");
+        });
         home.refresh();
         home
     }
@@ -173,10 +190,21 @@ fn recent_row(path: &Path, home: &Home) -> gtk::Box {
     text.append(&sub);
     c.append(&text);
     if let Ok(meta) = std::fs::metadata(path) {
-        let size = widgets::label(&fmt::size(meta.len()), "mono");
-        size.add_css_class("dim");
-        size.add_css_class("col-hide-narrow");
-        c.append(&size);
+        let kind = path.extension().map(|e| e.to_string_lossy().to_uppercase()).unwrap_or_default();
+        let when = meta
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .and_then(|d| glib::DateTime::from_unix_local(d.as_secs() as i64).ok())
+            .and_then(|d| d.format("%-d %b %Y").ok())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let facts = widgets::label(&format!("{kind} · {} · {when}", fmt::size(meta.len())), "mono");
+        facts.add_css_class("dim");
+        facts.add_css_class("recent-facts");
+        facts.add_css_class("col-hide-narrow");
+        facts.set_visible(window::fits("col-hide-narrow"));
+        c.append(&facts);
     }
     open.set_child(Some(&c));
     let p = path.to_path_buf();
