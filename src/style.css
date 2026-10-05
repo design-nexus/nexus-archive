@@ -752,15 +752,6 @@ listview.file-list > row:not(:hover) .file-row.folder .row-chevron {
   font-size: 0.86em;
 }
 
-.help-row {
-  padding: 8px 2px;
-  border-bottom: 1px solid alpha(@theme_text, 0.09);
-}
-
-.help-row:last-child {
-  border-bottom: none;
-}
-
 window.archive-window button.small-button {
   min-height: 26px;
   padding: 0 8px;

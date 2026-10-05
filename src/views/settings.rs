@@ -22,31 +22,27 @@ pub const SHORTCUTS: &[(&[&str], &str)] = &[
 
 /// The keyboard shortcuts on their own, for F1 and `?`.
 pub fn show_help() {
-    let (dialog, card) = widgets::dialog("Keyboard shortcuts", 460);
+    let (dialog, card) = widgets::dialog("Keyboard shortcuts", 520);
     let list = widgets::vbox(0);
-    list.add_css_class("help-list");
+    list.add_css_class("group-list");
     for (keys, what) in SHORTCUTS {
-        let row = widgets::hbox(12);
-        row.add_css_class("help-row");
-        let l = widgets::label(what, "");
-        l.set_hexpand(true);
-        l.set_wrap(true);
-        row.append(&l);
-        row.append(&widgets::key_caps(keys));
-        list.append(&row);
+        list.append(&widgets::row(what, "", Some(widgets::key_caps(keys).upcast_ref())));
     }
-    card.append(&list);
-    let tip = widgets::label("Drop files on the window to compress them, or onto an open archive to add them.", "dim");
-    tip.set_wrap(true);
-    card.append(&tip);
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        // Scrolls without a scrollbar, which would cover the key caps.
+        .vscrollbar_policy(gtk::PolicyType::External)
+        .propagate_natural_height(true)
+        .max_content_height(560)
+        .child(&list)
+        .build();
+    card.append(&scroll);
     let close = gtk::Button::with_label("Close");
     close.set_halign(gtk::Align::End);
-    close.add_css_class("suggested-action");
     let d = dialog.clone();
     close.connect_clicked(move |_| d.close());
     card.append(&close);
     dialog.present();
-    close.grab_focus();
 }
 
 /// Settings, as a card over the window (see `settings_dialog`).
